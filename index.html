@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yara's Kattenwebsite</title>
+<style>
+  :root {
+    --lila: #b79cf0;
+    --lila-donker: #7c5cc4;
+    --blauw: #bfe0fb;
+    --roze: #ffd9e6;
+    --tekst: #3f3060;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    color: var(--tekst);
+    background: #faf7ff;
+    background-image:
+      radial-gradient(circle at 10% 0%, var(--blauw) 0, transparent 40%),
+      radial-gradient(circle at 90% 10%, var(--roze) 0, transparent 40%),
+      radial-gradient(circle at 50% 100%, #e6dcff 0, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  /* Bovenkant */
+  header {
+    text-align: center;
+    padding: 44px 20px 40px;
+  }
+
+  /* Menu bovenaan: blijft zichtbaar tijdens het scrollen */
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  section[id] { scroll-margin-top: 110px; }
+  .menu {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; flex-wrap: wrap; gap: 6px 8px; justify-content: center; align-items: center;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(124,92,196,0.15);
+  }
+  .menu a, .menu button.dropKnop {
+    text-decoration: none; white-space: nowrap;
+    font-weight: 600; font-size: 1rem; font-family: inherit;
+    color: var(--lila-donker);
+    background: none; box-shadow: none; border: none; cursor: pointer;
+    padding: 8px 16px; border-radius: 999px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .menu a:hover, .menu button.dropKnop:hover { background: var(--roze); transform: none; box-shadow: none; }
+  .menu a.actief, .menu button.dropKnop.actief { background: var(--lila); color: white; }
+  @media (max-width: 480px) { .menu a, .menu button.dropKnop { padding: 7px 11px; font-size: 0.92rem; } }
+
+  /* Uitklapmenu bij Spelletjes */
+  .drop { position: relative; }
+  .dropLijst {
+    display: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    min-width: 230px; padding: 8px;
+    background: white; border-radius: 18px;
+    box-shadow: 0 12px 34px rgba(124,92,196,0.3);
+  }
+  .drop.open .dropLijst { display: block; }
+  .dropLijst a { display: flex; align-items: center; gap: 10px; border-radius: 12px; padding: 10px 14px; }
+  .dropLijst a span:first-child { font-size: 1.5rem; }
+
+  /* Pictogrammen om een spelletje te kiezen */
+  .spelKeuze { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+  .spelTegel {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 22px 12px; text-decoration: none; text-align: center;
+    background: white; border-radius: 22px; color: var(--tekst); font-weight: 700;
+    box-shadow: 0 6px 20px rgba(124,92,196,0.15);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .spelTegel:hover { transform: translateY(-5px); box-shadow: 0 12px 28px rgba(124,92,196,0.3); }
+  .spelTegel .pict { font-size: 3.4rem; line-height: 1; }
+  .spelTegel small { font-weight: 500; color: #8a7fb0; }
+  .label {
+    display: inline-block;
+    background: white;
+    color: var(--lila-donker);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 999px;
+    box-shadow: 0 2px 10px rgba(124,92,196,0.15);
+  }
+  h1 {
+    font-size: clamp(2.4rem, 7vw, 4rem);
+    line-height: 1.1;
+    margin: 18px 0 10px;
+    font-family: "Comic Sans MS", "Trebuchet MS", sans-serif;
+    font-weight: 400;
+    color: #9b6dd6;
+    text-shadow: 3px 3px #ffd6e4;
+  }
+  .ondertitel { font-size: 1.15rem; color: #7d6fa3; }
+
+  main { max-width: 900px; margin: 0 auto; padding: 0 20px 40px; }
+
+  /* Kaartjes */
+  section {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 28px;
+    padding: 32px;
+    margin-bottom: 28px;
+    box-shadow: 0 10px 40px rgba(124,92,196,0.12);
+  }
+  h2 { margin: 0 0 20px; font-size: 1.5rem; font-weight: 700; }
+
+  /* Weetje */
+  .weetje {
+    font-size: 1.25rem;
+    min-height: 110px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--roze), #f1e6ff);
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+  .weetje.wisselt { opacity: 0; }
+
+  button, .kies {
+    display: inline-block;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, var(--lila), #8fbdf0);
+    padding: 14px 30px;
+    border-radius: 999px;
+    box-shadow: 0 8px 20px rgba(124,92,196,0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  button:hover, .kies:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(124,92,196,0.4); }
+  button:active { transform: translateY(1px); }
+  .midden { text-align: center; }
+
+  /* Foto's */
+  .fotos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 18px;
+  }
+  figure {
+    margin: 0;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(124,92,196,0.15);
+    transition: transform 0.2s;
+  }
+  figure:hover { transform: translateY(-4px) rotate(-0.5deg); }
+  figure img, .fotos > img {
+    width: 100%; height: 280px;
+    object-fit: cover;
+    display: block;
+  }
+  .fotos > img { border-radius: 20px; }
+  figcaption { padding: 12px 16px; font-weight: 600; color: var(--lila-donker); }
+  #fotos { margin-top: 20px; }
+
+  /* Rennende kat */
+  .renner {
+    position: fixed;
+    bottom: 10px;
+    left: 0;
+    width: 160px;
+    z-index: 5;
+    pointer-events: auto;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    animation: rennen 18s linear infinite, kronkel 3.2s ease-in-out infinite alternate;
+  }
+  /* Op en neer door het scherm, zodat de kat een slingerend pad loopt */
+  @keyframes kronkel {
+    0%   { translate: 0 0; }
+    100% { translate: 0 -38vh; }
+  }
+  .renner svg { width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 6px 8px rgba(124,92,196,0.25)); }
+  @keyframes rennen {
+    0%   { transform: translateX(-200px) scaleX(1); }
+    40%  { transform: translateX(calc(100vw + 40px)) scaleX(1); }
+    41%  { transform: translateX(calc(100vw + 40px)) scaleX(-1); }
+    90%  { transform: translateX(-200px) scaleX(-1); }
+    100% { transform: translateX(-200px) scaleX(-1); }
+  }
+  .lijf { animation: huppel 0.36s ease-in-out infinite alternate; }
+  @keyframes huppel { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+  .poot { stroke-linecap: round; stroke-width: 8; }
+  .poot.a { animation: zwaai 0.36s ease-in-out infinite alternate; }
+  .poot.b { animation: zwaai 0.36s ease-in-out infinite alternate-reverse; }
+  .poot.voor { transform-origin: 100px 58px; }
+  .poot.achter { transform-origin: 44px 58px; }
+  @keyframes zwaai { from { transform: rotate(-32deg); } to { transform: rotate(32deg); } }
+  .staart { transform-origin: 34px 44px; animation: staart 0.7s ease-in-out infinite alternate; }
+  @keyframes staart { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
+  /* Tik op de kat: stilstaan, nog een tik: verder lopen */
+  .renner.stil, .renner.stil * { animation-play-state: paused; }
+  /* Feest: de kat blijft midden onderin staan en danst */
+  .renner.danst { animation: none; left: 50%; margin-left: -80px; }
+  .renner.danst, .renner.danst * { animation-play-state: running; }
+  .renner.danst svg { animation: dans 0.45s ease-in-out infinite alternate; transform-origin: 50% 90%; }
+  @keyframes dans {
+    0%   { transform: rotate(-14deg) translateY(0) scale(1.05, 0.95); }
+    50%  { transform: rotate(0deg) translateY(-45px) scale(0.95, 1.08); }
+    100% { transform: rotate(14deg) translateY(0) scale(1.05, 0.95); }
+  }
+  @media (prefers-reduced-motion: reduce) { .renner, .spoor { display: none; } }
+
+  /* Pootafdrukjes achter de rennende kat */
+  .spoor {
+    position: fixed;
+    width: 22px; height: 22px;
+    z-index: 4;
+    pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='%23b79cf0'%3E%3Cellipse cx='20' cy='27' rx='10' ry='8'/%3E%3Cellipse cx='7' cy='17' rx='4' ry='5.5'/%3E%3Cellipse cx='16' cy='9' rx='4' ry='5.5'/%3E%3Cellipse cx='25' cy='9' rx='4' ry='5.5'/%3E%3Cellipse cx='33' cy='17' rx='4' ry='5.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    opacity: 0.7;
+    animation: spoorWeg 3s ease-out forwards;
+  }
+  @keyframes spoorWeg { from { opacity: 0.7; } to { opacity: 0; } }
+
+  /* Bordspel: Kat naar de Viskom */
+  .bord { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 460px; margin: 0 auto; }
+  .vak {
+    position: relative; aspect-ratio: 1; border-radius: 14px;
+    background: white; box-shadow: 0 3px 10px rgba(124,92,196,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(1.1rem, 5vw, 1.7rem);
+  }
+  .vak small { position: absolute; top: 3px; left: 6px; font-size: 0.6rem; color: #a99bd0; font-weight: 700; }
+  .vak.vis, .vak.extra { background: #e4f6e8; }
+  .vak.terug { background: #ffe3e3; }
+  .vak.slaap { background: #e6f0ff; }
+  .vak.einde { background: #fff3c4; }
+  .spelrij { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+  .spelrij .bord { flex: 1 1 320px; margin: 0; }
+  .uitleg { flex: 1 1 220px; max-width: 320px; background: white; border-radius: 20px; padding: 16px 18px; box-shadow: 0 3px 10px rgba(124,92,196,0.15); }
+  .uitleg h3 { margin: 0 0 10px; font-size: 1.05rem; }
+  .uitleg ul { list-style: none; margin: 0; padding: 0; }
+  .uitleg li { display: flex; gap: 10px; align-items: center; padding: 5px 0; font-size: 0.95rem; }
+  .uitleg li span:first-child { flex: none; width: 2.2em; text-align: center; font-size: 1.4rem; }
+  .pion { position: absolute; bottom: 1px; font-size: clamp(1rem, 4.5vw, 1.5rem); transition: transform 0.2s; }
+  .pion.jij { left: 2px; }
+  .pion.pc { right: 2px; }
+  .spelbericht { text-align: center; min-height: 3em; margin: 16px 0 4px; font-size: 1.1rem; }
+  .dobbel { font-size: 2.2rem; vertical-align: middle; margin-left: 6px; }
+
+  /* Memory met Lio */
+  .memoryBord { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; max-width: 700px; margin: 0 auto; }
+  .kaartje {
+    position: relative; aspect-ratio: 1; padding: 0; border-radius: 16px;
+    background: none; box-shadow: none; perspective: 600px;
+  }
+  .kaartje:hover { transform: none; box-shadow: none; }
+  .kaartje .binnen {
+    position: absolute; inset: 0; transition: transform 0.4s; transform-style: preserve-3d;
+  }
+  .kaartje.open .binnen, .kaartje.gevonden .binnen { transform: rotateY(180deg); }
+  .kaartje .voor, .kaartje .achter {
+    position: absolute; inset: 0; border-radius: 16px; overflow: hidden;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .kaartje .voor {
+    background: linear-gradient(135deg, var(--lila), #8fbdf0);
+    box-shadow: 0 4px 12px rgba(124,92,196,0.3);
+    font-size: clamp(1.4rem, 6vw, 2.2rem);
+  }
+  .kaartje .achter {
+    transform: rotateY(180deg); background: white;
+    box-shadow: 0 4px 12px rgba(124,92,196,0.2);
+    font-size: clamp(1.8rem, 8vw, 3rem);
+  }
+  .kaartje .achter img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .kaartje.gevonden .achter { box-shadow: 0 0 0 4px #6fcf8e; }
+
+  /* Woordzoeker */
+  .zoekRij { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+  .zoekBord {
+    display: grid; gap: 3px; flex: 1 1 320px; max-width: 460px;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .letter {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    background: white; border-radius: 10px; font-weight: 700; color: var(--tekst);
+    font-size: clamp(0.9rem, 3.6vw, 1.35rem); box-shadow: 0 2px 6px rgba(124,92,196,0.12);
+    cursor: pointer;
+  }
+  .letter.sel { background: var(--lila); color: white; }
+  .letter.gevonden { background: #d4f5dd; color: #2f7a48; }
+  .letter.sel.gevonden { background: var(--lila); color: white; }
+  .zoekLijst { flex: 1 1 200px; max-width: 280px; background: white; border-radius: 20px; padding: 16px 18px; box-shadow: 0 3px 10px rgba(124,92,196,0.15); }
+  .zoekLijst h3 { margin: 0 0 10px; font-size: 1.05rem; }
+  .zoekLijst ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+  .zoekLijst li { font-weight: 600; letter-spacing: 0.04em; }
+  .zoekLijst li.klaar { text-decoration: line-through; color: #2f7a48; opacity: 0.7; }
+
+  /* Puzzel */
+  .puzzelKies { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center; margin-bottom: 16px; }
+  .puzzelVoorbeeld { height: 72px; width: auto; max-width: 120px; object-fit: cover; border-radius: 12px; box-shadow: 0 3px 10px rgba(124,92,196,0.25); }
+  .puzzelKnoppen { display: flex; gap: 8px; }
+  button.puzzelKeuze { padding: 0; border-radius: 14px; overflow: hidden; width: 56px; height: 56px; border: 3px solid white; box-shadow: 0 2px 8px rgba(124,92,196,0.3); }
+  button.puzzelKeuze img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  button.puzzelKeuze.actief { outline: 3px solid var(--lila-donker); outline-offset: 2px; }
+  .puzzelBord {
+    display: grid; grid-template-columns: repeat(var(--kol, 10), 1fr); grid-template-rows: repeat(var(--rij, 5), 1fr); gap: 1px;
+    margin: 0 auto; width: min(100%, 560px, calc(70vh * var(--ratio, 1))); aspect-ratio: var(--ratio, 1);
+    background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(124,92,196,0.2);
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .puzzelStuk { background-image: var(--plaat); background-size: calc(var(--kol, 10) * 100%) calc(var(--rij, 5) * 100%); cursor: pointer; }
+  .puzzelStuk.goed { box-shadow: inset 0 0 0 2px rgba(111,207,142,0.95); }
+  .puzzelStuk.gekozen { outline: 3px solid var(--lila-donker); outline-offset: -3px; filter: brightness(1.15); position: relative; z-index: 1; }
+
+  /* Tekenbord */
+  #tekenbord {
+    width: 100%;
+    height: auto;
+    background: white;
+    border: 3px solid var(--blauw);
+    border-radius: 20px;
+    touch-action: none;
+    cursor: crosshair;
+    display: block;
+  }
+  .gereedschap { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center; margin-bottom: 16px; }
+  .kleuren, .dikte { display: flex; gap: 8px; align-items: center; }
+  .kleur {
+    width: 34px; height: 34px; padding: 0;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(124,92,196,0.3);
+  }
+  .kleur:hover { transform: scale(1.12); }
+  .kleur.actief { outline: 3px solid var(--lila-donker); outline-offset: 2px; }
+  button.klein {
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    background: white;
+    color: var(--lila-donker);
+    border: 2px solid var(--blauw);
+    box-shadow: none;
+  }
+  button.klein:hover { border-color: var(--lila); box-shadow: none; }
+  button.klein.actief { background: var(--lila); color: white; border-color: var(--lila); }
+  .knoppenrij { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+  .stempels { margin-top: 0; margin-bottom: 16px; }
+
+  /* Quiz */
+  #quiz { text-align: center; }
+  .vraag { font-size: 1.25rem; font-weight: 600; margin-bottom: 18px; }
+  .voortgang { color: #8a7fb0; margin-bottom: 8px; }
+  .antwoorden { display: grid; gap: 12px; max-width: 420px; margin: 0 auto; }
+  .antwoord {
+    background: white;
+    color: var(--tekst);
+    border: 2px solid var(--blauw);
+    box-shadow: none;
+    padding: 14px 20px;
+  }
+  .antwoord:hover:not(:disabled) { border-color: var(--lila); box-shadow: none; }
+  .antwoord.goed { background: #d4f5dd; border-color: #6fcf8e; }
+  .antwoord.fout { background: var(--roze); border-color: #f08fb0; }
+  .uitleg { margin-top: 16px; min-height: 24px; color: var(--lila-donker); font-weight: 600; }
+  .score { font-size: 2.2rem; margin: 10px 0; }
+
+  footer { text-align: center; padding: 10px 20px 50px; color: #8a7fb0; }
+</style>
+</head>
+<body>
+
+<div class="renner" aria-hidden="true">
+  <svg viewBox="0 0 160 100">
+    <defs>
+      <linearGradient id="vacht" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#b79cf0"/>
+        <stop offset="1" stop-color="#8fbdf0"/>
+      </linearGradient>
+    </defs>
+    <!-- poten achter het lijf (verder weg, donkerder) -->
+    <line class="poot achter b" x1="44" y1="58" x2="44" y2="88" stroke="#9b7fe0"/>
+    <line class="poot voor b" x1="100" y1="58" x2="100" y2="88" stroke="#9b7fe0"/>
+    <g class="lijf">
+      <path class="staart" d="M34 44 C10 44 6 16 24 10" fill="none" stroke="#b79cf0" stroke-width="8" stroke-linecap="round"/>
+      <rect x="30" y="30" width="86" height="34" rx="17" fill="url(#vacht)"/>
+      <!-- hoofd -->
+      <polygon points="110,24 113,4 126,19" fill="#b79cf0"/>
+      <polygon points="126,19 138,5 141,26" fill="#8fbdf0"/>
+      <polygon points="114,20 115,10 122,18" fill="#ffd9e6"/>
+      <circle cx="126" cy="34" r="18" fill="url(#vacht)"/>
+      <circle cx="133" cy="32" r="3" fill="#3f3060"/>
+      <circle cx="134" cy="31" r="1" fill="white"/>
+      <circle cx="142" cy="39" r="2.6" fill="#ff9fbf"/>
+    </g>
+    <!-- poten voor het lijf -->
+    <line class="poot achter a" x1="44" y1="58" x2="44" y2="88" stroke="#b79cf0"/>
+    <line class="poot voor a" x1="100" y1="58" x2="100" y2="88" stroke="#b79cf0"/>
+  </svg>
+</div>
+
+<nav class="menu" aria-label="Menu">
+  <a href="#weetjes" data-sec="weetjes">✨ Weetjes</a>
+  <a href="#fotoos" data-sec="fotoos">📸 Foto's</a>
+  <a href="#quizvak" data-sec="quizvak">❓ Quiz</a>
+  <div class="drop" id="drop">
+    <button class="dropKnop" id="dropKnop" data-sec="spelletjes" aria-haspopup="true" aria-expanded="false">🎲 Spelletjes ▾</button>
+    <div class="dropLijst" id="dropLijst">
+      <a href="#bordspel"><span>🎲</span><span>Kat naar de Viskom</span></a>
+      <a href="#memory"><span>🃏</span><span>Memory met Lio</span></a>
+      <a href="#woordzoeker"><span>🔎</span><span>Woordzoeker</span></a>
+      <a href="#puzzel"><span>🧩</span><span>Kattenpuzzel</span></a>
+    </div>
+  </div>
+  <a href="#tekenen" data-sec="tekenen">🎨 Tekenen</a>
+</nav>
+
+<header>
+  <span class="label">🐾 Alles over katten</span>
+  <h1>🐱 Yara's Kattenwebsite 🐱</h1>
+  <div class="ondertitel">Weetjes, foto's en natuurlijk Lio</div>
+</header>
+
+<main>
+  <section id="weetjes">
+    <h2>Wist je dat...? ✨</h2>
+    <div class="weetje" id="weetje">Druk op de knop voor een leuk weetje! 👇</div>
+    <div class="midden"><button id="knop">Nieuw weetje</button></div>
+  </section>
+
+  <section id="fotoos">
+    <h2>Dit is Lio 😻</h2>
+    <div class="fotos">
+      <figure><img src="Lio.jpeg" alt="Lio slaapt opgekruld"><figcaption>Lio slaapt lekker 😴</figcaption></figure>
+      <figure><img src="Lio%20gezicht.jpeg" alt="Lio met zijn roze neusje"><figcaption>Kijk dat roze neusje! 💗</figcaption></figure>
+      <figure><img src="Lio%20stoel.jpeg" alt="Lio op de stoel"><figcaption>Lio op zijn stoel 🪑</figcaption></figure>
+    </div>
+    <p class="midden">Laat Lio geluidjes maken:</p>
+    <div class="midden knoppenrij geluiden">
+      <button class="klein" id="knopMiauw">🐱 Miauw</button>
+      <button class="klein" id="knopSpin">😌 Spinnen</button>
+      <button class="klein" id="knopBlaas">😾 Blazen</button>
+    </div>
+  </section>
+
+  <section id="quizvak">
+    <h2>Kattenquiz ❓</h2>
+    <div id="quiz"></div>
+  </section>
+
+  <section id="spelletjes">
+    <h2>Spelletjes 🎮</h2>
+    <p class="midden">Kies een spelletje:</p>
+    <div class="spelKeuze">
+      <a class="spelTegel" href="#bordspel"><span class="pict">🎲</span>Kat naar de Viskom<small>Bordspel</small></a>
+      <a class="spelTegel" href="#memory"><span class="pict">🃏</span>Memory met Lio<small>Zoek de paren</small></a>
+      <a class="spelTegel" href="#woordzoeker"><span class="pict">🔎</span>Woordzoeker<small>Vind de kattenwoorden</small></a>
+      <a class="spelTegel" href="#puzzel"><span class="pict">🧩</span>Kattenpuzzel<small>50 stukjes</small></a>
+    </div>
+  </section>
+
+  <section id="bordspel">
+    <h2>Spel: Kat naar de Viskom 🎲</h2>
+    <p class="midden">Jij bent 😺, Lio is 🐈‍⬛. Wie is het eerst bij de viskom? 🐟</p>
+    <div class="spelrij">
+      <div class="bord" id="bord"></div>
+      <div class="uitleg" id="uitleg"></div>
+    </div>
+    <div class="spelbericht" id="spelbericht">Gooi de dobbelsteen om te beginnen!</div>
+    <div class="midden knoppenrij">
+      <button id="gooi">🎲 Gooi <span class="dobbel" id="dobbel"></span></button>
+      <button class="klein" id="spelOpnieuw">🔄 Opnieuw</button>
+    </div>
+  </section>
+
+  <section id="memory">
+    <h2>Memory met Lio 🃏</h2>
+    <p class="midden">Draai twee kaartjes om en zoek de paren!</p>
+    <div class="memoryBord" id="memoryBord"></div>
+    <div class="spelbericht" id="memoryBericht"></div>
+    <div class="midden knoppenrij">
+      <button class="klein" id="memoryOpnieuw">🔄 Opnieuw</button>
+    </div>
+  </section>
+
+  <section id="woordzoeker">
+    <h2>Kattenwoordzoeker 🔎</h2>
+    <p class="midden">Sleep over de letters om de kattenwoorden te vinden. Ze kunnen alle kanten op staan: vooruit, achteruit, omhoog, omlaag en schuin!</p>
+    <div class="zoekRij">
+      <div class="zoekBord" id="zoekBord"></div>
+      <div class="zoekLijst"><h3>Zoek deze woorden:</h3><ul id="zoekLijst"></ul></div>
+    </div>
+    <div class="spelbericht" id="zoekBericht"></div>
+    <div class="midden knoppenrij">
+      <button class="klein" id="zoekOpnieuw">🔄 Nieuwe woordzoeker</button>
+    </div>
+  </section>
+
+  <section id="puzzel">
+    <h2>Kattenpuzzel 🧩</h2>
+    <p class="midden">De 50 stukjes van Lio liggen door elkaar. Tik op een stukje en dan op een ander stukje (of sleep het erheen) om ze te verwisselen. Een groen randje betekent dat het stukje goed ligt!</p>
+    <div class="puzzelKies">
+      <img class="puzzelVoorbeeld" id="puzzelVoorbeeld" alt="Zo moet het worden">
+      <div class="puzzelKnoppen" id="puzzelKnoppen"></div>
+    </div>
+    <div class="puzzelBord" id="puzzelBord"></div>
+    <div class="spelbericht" id="puzzelBericht"></div>
+    <div class="midden knoppenrij">
+      <button class="klein" id="puzzelOpnieuw">🔄 Opnieuw husselen</button>
+    </div>
+  </section>
+
+  <section id="tekenen">
+    <h2>Teken jouw kat 🎨</h2>
+    <div class="gereedschap">
+      <div class="kleuren" id="kleuren"></div>
+      <div class="dikte">
+        <button class="klein" data-dikte="4" title="Dun">•</button>
+        <button class="klein actief" data-dikte="10" title="Middel">●</button>
+        <button class="klein" data-dikte="24" title="Dik">⬤</button>
+      </div>
+    </div>
+    <div class="midden knoppenrij stempels">
+      <button class="klein actief" id="pen" data-stempel="">✏️ Pen</button>
+      <button class="klein" data-stempel="poot">🐾 Pootafdruk</button>
+      <button class="klein" data-stempel="oren">😺 Kattenoortjes</button>
+      <button class="klein" data-stempel="vis">🐟 Vis</button>
+    </div>
+    <canvas id="tekenbord" width="800" height="520"></canvas>
+    <div class="midden knoppenrij">
+      <button class="klein" id="gum">🧽 Gum</button>
+      <button class="klein" id="terug">↩️ Terug</button>
+      <button class="klein" id="wis">🗑️ Alles wissen</button>
+      <button class="klein" id="bewaar">💾 Bewaar</button>
+    </div>
+  </section>
+
+  <section id="meerfotos">
+    <h2>Meer kattenfoto's 📸</h2>
+    <div class="midden">
+      <label class="kies">
+        Kies een foto
+        <input type="file" id="fotoKies" accept="image/*" multiple hidden>
+      </label>
+    </div>
+    <div class="fotos" id="fotos"></div>
+  </section>
+</main>
+
+<footer>
+  Gemaakt door Yara 💜<br>
+  <small>Miauw: "Meow.ogg" van Dan Crosby, via Wikimedia Commons (CC BY-SA 3.0)</small>
+</footer>
+
+<script>
+  const weetjes = [
+    "Een kat slaapt gemiddeld 12 tot 16 uur per dag! 😴",
+    "Katten kunnen wel 5 keer hun eigen lengte omhoog springen. 🦘",
+    "Als een kat spint, is hij meestal blij. Maar soms spint hij ook als hij zich niet lekker voelt. 💤",
+    "Een kat heeft 18 tenen: 5 aan elke voorpoot en 4 aan elke achterpoot. 🐾",
+    "Katten zien in het donker veel beter dan wij. Ze hebben maar een zesde van het licht nodig dat wij nodig hebben. 🌙",
+    "De neus van elke kat heeft een eigen patroon, net als jouw vingerafdruk. 👃",
+    "Katten hebben snorharen om te voelen waar ze langs kunnen. Ze zijn supergevoelig! 😺",
+    "Een groepje kittens heet een nestje. 🍼",
+    "Katten hebben een heel ruwe tong, net als een klein kammetje, waarmee ze zichzelf wassen. 👅",
+    "Als een kat langzaam met zijn ogen knippert naar jou, is dat een kattenkusje. 😽",
+    "Katten kunnen hun oren draaien. Ze hebben er wel 32 spiertjes in! 👂",
+    "Een kat kan bijna altijd op zijn pootjes landen als hij valt. 🤸",
+    "Een kat kan wel 48 kilometer per uur rennen, dat is sneller dan een auto in een woonwijk mag rijden! 🏃",
+    "Katten kunnen niet goed proeven of iets zoet is. Daarom hebben ze niets aan snoep. 🍬",
+    "Een kat heeft een derde ooglid, dat beschermt zijn oog. Soms zie je een stukje ervan als hij slaperig is. 👁️",
+    "Wanneer een kat kneedt met zijn pootjes, doet hij dat omdat hij zich veilig en op zijn gemak voelt. 🍞",
+    "Katten zweten bijna alleen via hun pootjes. Als ze bang zijn, kun je natte pootafdrukjes zien. 🐾",
+    "Een kat heeft ongeveer 230 botten, meer dan een mens, die er zo'n 206 heeft. 🦴",
+    "Katten kunnen door een heel smal gaatje glippen, zolang hun kop er maar door past. 🕳️",
+    "Als een kat zijn staart als een rechte pijl omhoog houdt, wil hij jou gedag zeggen. 👋",
+    "Een kat gebruikt zijn geur om te laten weten dat iets van hem is. Als hij zijn kop tegen je aan wrijft, zegt hij: jij bent van mij! 💜",
+    "Kittens worden geboren met hun oogjes dicht en gaan pas na ongeveer 10 dagen open. 🍼",
+    "Katten wonen al ongeveer 10.000 jaar samen met mensen. 🏺",
+    "In het oude Egypte werden katten zo geliefd dat ze als heilig werden gezien. 🔺",
+    "Een kat kan zijn oren onafhankelijk van elkaar draaien, zodat hij twee geluiden tegelijk kan volgen. 🎧",
+    "Katten hebben een speciaal orgaan in hun bek waarmee ze geuren extra goed kunnen proeven. Dan trekken ze een grappig gezicht. 😹",
+    "De meeste oranje katten zijn jongens, oranje poezen zijn zeldzamer. 🧡",
+    "Als een kat met zijn staart zwiept, is hij meestal geïrriteerd of opgewonden. Wees dan voorzichtig! ⚠️",
+    "Katten drinken graag uit een stromende bak of kraan. Daarom hebben veel katten een drinkfontein. 💧",
+    "Een kat spendeert wel een derde van zijn wakkere tijd aan zichzelf wassen. 🛁",
+    "De snorharen van een kat zijn ongeveer even breed als zijn lijf. Zo weet hij of hij ergens doorheen past. 📏"
+  ];
+
+  const weetjeVak = document.getElementById("weetje");
+  let vorige = -1;
+
+  document.getElementById("knop").addEventListener("click", () => {
+    let nieuw;
+    do { nieuw = Math.floor(Math.random() * weetjes.length); } while (nieuw === vorige);
+    vorige = nieuw;
+    weetjeVak.classList.add("wisselt");
+    setTimeout(() => {
+      weetjeVak.textContent = weetjes[nieuw];
+      weetjeVak.classList.remove("wisselt");
+    }, 200);
+  });
+
+  // Echte miauw uit het bestand miauw.ogg
+  const miauwGeluid = new Audio("miauw.ogg");
+  function miauw() {
+    miauwGeluid.currentTime = 0;
+    miauwGeluid.play().catch(() => { /* geen geluid mogelijk, dan gewoon stil */ });
+  }
+
+  // Blazende kat bij een fout antwoord (uit het bestand blazen.wav)
+  const blaasGeluid = new Audio("blazen.wav");
+  // Speelt het hele blaasgeluid af (ruim 2 seconden) en laat het aan het eind zacht uitsterven
+  let blaasFade = null;
+  function blaas() {
+    clearInterval(blaasFade);
+    blaasGeluid.volume = 1;
+    blaasGeluid.currentTime = 0;
+    blaasGeluid.play().catch(() => {});
+    blaasFade = setInterval(() => {
+      const over = blaasGeluid.duration - blaasGeluid.currentTime;
+      if (blaasGeluid.ended || blaasGeluid.paused) {
+        clearInterval(blaasFade);
+      } else if (over < 0.7) {
+        blaasGeluid.volume = Math.max(0, over / 0.7);
+      }
+    }, 30);
+  }
+
+  // Spinnen: zelf gemaakt met de Web Audio API (laag gebrom dat snel op en neer gaat)
+  let spinAudio = null, spinStop = null;
+  function stopSpin() {
+    if (!spinAudio) return;
+    const { ctx, master } = spinAudio;
+    master.gain.cancelScheduledValues(ctx.currentTime);
+    master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+    setTimeout(() => ctx.close(), 700);
+    spinAudio = null;
+    clearTimeout(spinStop);
+    document.getElementById("knopSpin").classList.remove("actief");
+  }
+  function spin() {
+    if (spinAudio) { stopSpin(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    // ruisbuffer als basis
+    const lengte = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, lengte, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let laatste = 0;
+    for (let i = 0; i < lengte; i++) {
+      laatste = (laatste + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+      data[i] = laatste * 3.5;
+    }
+    const ruis = ctx.createBufferSource();
+    ruis.buffer = buffer;
+    ruis.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 220;
+    // het trillen van het spinnen (ongeveer 25 keer per seconde)
+    const trilling = ctx.createGain();
+    trilling.gain.value = 0.5;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 25;
+    const lfoDiepte = ctx.createGain();
+    lfoDiepte.gain.value = 0.5;
+    lfo.connect(lfoDiepte).connect(trilling.gain);
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.5);
+    ruis.connect(filter).connect(trilling).connect(master).connect(ctx.destination);
+    ruis.start();
+    lfo.start();
+    spinAudio = { ctx, master };
+    document.getElementById("knopSpin").classList.add("actief");
+    spinStop = setTimeout(stopSpin, 6000);
+  }
+
+  document.getElementById("knopMiauw").addEventListener("click", miauw);
+  document.getElementById("knopBlaas").addEventListener("click", blaas);
+  document.getElementById("knopSpin").addEventListener("click", spin);
+
+  // Kattenquiz
+  const vragen = [
+    { v: "Hoe heet een mannetjeskat?", a: ["Een kater", "Een poes", "Een kitten"], goed: 0, uitleg: "Een vrouwtje heet een poes. 😺" },
+    { v: "Hoe lang is een poes ongeveer zwanger voordat de kittens geboren worden?", a: ["2 weken", "9 weken", "6 maanden"], goed: 1, uitleg: "Dat is ongeveer twee maanden. 🍼" },
+    { v: "Wat is de grootste kat ter wereld?", a: ["De leeuw", "De tijger", "De jaguar"], goed: 1, uitleg: "De tijger is de grootste van alle katten. 🐅" },
+    { v: "Waarvoor gebruikt een kat een krabpaal?", a: ["Om op te slapen", "Om zijn klauwen te verzorgen", "Om uit te drinken"], goed: 1, uitleg: "Krabben houdt de klauwen scherp en geeft rekoefeningen. 💅" },
+    { v: "Welk eten is gevaarlijk voor katten?", a: ["Chocolade", "Gekookte kip", "Een stukje vis"], goed: 0, uitleg: "Chocolade is giftig voor katten, geef hem dus nooit! 🍫" },
+    { v: "Welke plant maakt veel katten dartel en vrolijk?", a: ["Roos", "Kattenkruid", "Klaver"], goed: 1, uitleg: "Veel katten gaan rollen en spinnen van kattenkruid. 🌿" },
+    { v: "Hoeveel levens heeft een kat volgens het gezegde?", a: ["3", "9", "20"], goed: 1, uitleg: "Een kat heeft negen levens, zeggen ze. Dat komt omdat katten zo handig ontsnappen aan gevaar. 🍀" },
+    { v: "Welke dieren piepen zo hoog dat een kat ze goed kan horen?", a: ["Muizen", "Olifanten", "Koeien"], goed: 0, uitleg: "Katten horen hoge tonen die wij niet eens kunnen horen. 🐭" },
+    { v: "Welke kat heeft van nature vaak geen staart?", a: ["De Manx", "De Pers", "De Siamees"], goed: 0, uitleg: "De Manx komt van het eiland Man. 🏝️" },
+    { v: "Welke kat heeft bijna geen haar?", a: ["De Pers", "De Sphynx", "De Maine Coon"], goed: 1, uitleg: "De Sphynx voelt aan als een warme perzik. 🍑" },
+    { v: "Hoe oud kan een huiskat worden?", a: ["Ongeveer 3 jaar", "Vaak 15 jaar of ouder", "Wel 50 jaar"], goed: 1, uitleg: "Met goede zorg kan een kat ruim 15 jaar worden. 🎂" },
+    { v: "Wat doet een kat als hij boos of bang is en ssss zegt?", a: ["Hij blaast", "Hij zingt", "Hij spint"], goed: 0, uitleg: "Blazen is een waarschuwing: kom maar niet dichterbij! 😾" },
+    { v: "Waarom draagt een kat soms een belletje aan zijn halsband?", a: ["Omdat hij dat mooi vindt", "Zodat vogeltjes hem kunnen horen", "Om zijn naam te horen"], goed: 1, uitleg: "Zo kunnen vogeltjes op tijd wegvliegen. 🐦" },
+    { v: "Hoe heet het geluid dat een kat vooral maakt om mensen te roepen?", a: ["Miauw", "Loeien", "Brullen"], goed: 0, uitleg: "Volwassen katten miauwen vooral tegen mensen en niet zo veel tegen andere katten. 🐱" }
+  ];
+
+  const quizVak = document.getElementById("quiz");
+  let nr = 0, punten = 0;
+
+  function toonVraag() {
+    const q = vragen[nr];
+    quizVak.innerHTML = "";
+    const voortgang = document.createElement("div");
+    voortgang.className = "voortgang";
+    voortgang.textContent = "Vraag " + (nr + 1) + " van " + vragen.length;
+    const vraag = document.createElement("div");
+    vraag.className = "vraag";
+    vraag.textContent = q.v;
+    const lijst = document.createElement("div");
+    lijst.className = "antwoorden";
+    const uitleg = document.createElement("div");
+    uitleg.className = "uitleg";
+
+    q.a.forEach((tekst, i) => {
+      const knop = document.createElement("button");
+      knop.className = "antwoord";
+      knop.textContent = tekst;
+      knop.addEventListener("click", () => {
+        lijst.querySelectorAll("button").forEach(b => b.disabled = true);
+        if (i === q.goed) {
+          punten++;
+          miauw();
+          knop.classList.add("goed");
+          uitleg.textContent = "Goed zo! 🎉 " + q.uitleg;
+        } else {
+          blaas();
+          knop.classList.add("fout");
+          lijst.children[q.goed].classList.add("goed");
+          uitleg.textContent = "Bijna! " + q.uitleg;
+        }
+        const volgende = document.createElement("button");
+        volgende.style.marginTop = "16px";
+        volgende.textContent = nr + 1 < vragen.length ? "Volgende vraag" : "Bekijk je score";
+        volgende.addEventListener("click", () => { nr++; nr < vragen.length ? toonVraag() : toonScore(); });
+        quizVak.appendChild(volgende);
+      });
+      lijst.appendChild(knop);
+    });
+
+    quizVak.append(voortgang, vraag, lijst, uitleg);
+  }
+
+  function toonScore() {
+    let boodschap = "Goed bezig, blijf oefenen! 🐾";
+    if (punten === vragen.length) boodschap = "Perfect! Jij bent een echte kattenexpert! 🏆";
+    else if (punten >= 4) boodschap = "Super gedaan! Bijna alles goed! 🌟";
+    if (punten > 10) feest();
+    quizVak.innerHTML =
+      '<div class="score">' + punten + ' van ' + vragen.length + ' goed</div>' +
+      '<div class="vraag">' + boodschap + '</div>';
+    const opnieuw = document.createElement("button");
+    opnieuw.textContent = "Nog een keer";
+    opnieuw.addEventListener("click", () => { nr = 0; punten = 0; toonVraag(); });
+    quizVak.appendChild(opnieuw);
+  }
+
+  toonVraag();
+
+  // Tik op de kat om hem te laten stilstaan of weer te laten lopen
+  (function () {
+    const kat = document.querySelector(".renner");
+    if (kat) kat.addEventListener("click", () => kat.classList.toggle("stil"));
+  })();
+
+  // Menu: markeer het onderdeel waar je nu bent (alle spelletjes horen bij "Spelletjes")
+  (function () {
+    const groep = { weetjes: "weetjes", fotoos: "fotoos", quizvak: "quizvak", spelletjes: "spelletjes",
+      bordspel: "spelletjes", memory: "spelletjes", woordzoeker: "spelletjes", puzzel: "spelletjes", tekenen: "tekenen", meerfotos: "fotoos" };
+    const secties = Object.keys(groep).map(id => document.getElementById(id));
+    const links = document.querySelectorAll(".menu [data-sec]");
+    function markeer() {
+      let nu = null;
+      secties.forEach(s => { if (s.getBoundingClientRect().top <= 140) nu = s.id; });
+      links.forEach(a => a.classList.toggle("actief", nu !== null && a.dataset.sec === groep[nu]));
+    }
+    window.addEventListener("scroll", markeer, { passive: true });
+    markeer();
+
+    // Uitklapmenu: open met een klik, dicht bij een keuze, een klik ernaast of Escape
+    const drop = document.getElementById("drop");
+    const dropKnop = document.getElementById("dropKnop");
+    function zetOpen(open) {
+      drop.classList.toggle("open", open);
+      dropKnop.setAttribute("aria-expanded", open);
+    }
+    dropKnop.addEventListener("click", (e) => { e.stopPropagation(); zetOpen(!drop.classList.contains("open")); });
+    drop.querySelectorAll(".dropLijst a").forEach(a => a.addEventListener("click", () => zetOpen(false)));
+    document.addEventListener("click", (e) => { if (!drop.contains(e.target)) zetOpen(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") zetOpen(false); });
+  })();
+
+  // Feest: de rennende kat gaat dansen en strooit confetti (quiz, woordzoeker of memory gehaald)
+  let feestTimer = null, confettiTimer = null;
+  function feest() {
+    const kat = document.querySelector(".renner");
+    if (!kat || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    clearTimeout(feestTimer);
+    clearInterval(confettiTimer);
+    kat.classList.add("danst");
+    const kleuren = ["#b79cf0", "#8fbdf0", "#ffb3cf", "#f5d76e", "#7fcf9a", "#f2a65a"];
+    const rand = (a, b) => a + Math.random() * (b - a);
+    function knal() {
+      const r = kat.getBoundingClientRect();
+      const x0 = r.left + r.width * 0.6, y0 = r.top + r.height * 0.3;
+      for (let i = 0; i < 40; i++) {
+        const stuk = document.createElement("div");
+        const breed = rand(6, 11);
+        stuk.setAttribute("aria-hidden", "true");
+        stuk.style.cssText = "position:fixed;left:0;top:0;z-index:30;pointer-events:none;" +
+          "width:" + breed + "px;height:" + breed * rand(0.5, 1.6) + "px;background:" + kleuren[i % kleuren.length] +
+          ";border-radius:" + (Math.random() < 0.3 ? "50%" : "2px") + ";";
+        document.body.appendChild(stuk);
+        const dx = rand(-260, 260), omhoog = rand(160, 380);
+        const draai = rand(-720, 720);
+        const val = window.innerHeight - y0 + 40;
+        stuk.animate([
+          { transform: "translate(" + x0 + "px," + y0 + "px) rotate(0deg)", opacity: 1 },
+          { transform: "translate(" + (x0 + dx * 0.6) + "px," + (y0 - omhoog) + "px) rotate(" + draai / 2 + "deg)", opacity: 1, offset: 0.4 },
+          { transform: "translate(" + (x0 + dx) + "px," + (y0 + val) + "px) rotate(" + draai + "deg)", opacity: 0.9 }
+        ], { duration: rand(1600, 2600), easing: "cubic-bezier(0.3, 0.6, 0.6, 1)", fill: "forwards" })
+          .onfinish = () => stuk.remove();
+      }
+    }
+    knal();
+    confettiTimer = setInterval(knal, 700);
+    feestTimer = setTimeout(() => {
+      clearInterval(confettiTimer);
+      kat.classList.remove("danst");
+    }, 6000);
+  }
+
+  // Pootafdrukjes achter de rennende kat
+  (function () {
+    const kat = document.querySelector(".renner");
+    if (!kat || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let vorigeX = null, vorigeY = null, links = true;
+    setInterval(() => {
+      if (document.hidden) return;
+      const r = kat.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.bottom; // hoogte van de pootjes
+      const dx = vorigeX === null ? 0 : x - vorigeX;
+      const dy = vorigeY === null ? 0 : y - vorigeY;
+      vorigeX = x; vorigeY = y;
+      if (Math.abs(dx) < 1 || r.right < 0 || r.left > window.innerWidth) return;
+      const richting = dx > 0 ? 1 : -1;
+      // de afdruk wijst in de looprichting, ook als de kat schuin omhoog of omlaag loopt
+      const hoek = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+      const voet = document.createElement("div");
+      voet.className = "spoor";
+      // onder de pootjes, een beetje achter de kat, links en rechts om en om
+      voet.style.left = (x - richting * 45 - 11) + "px";
+      voet.style.bottom = (window.innerHeight - y + (links ? 2 : 12)) + "px";
+      voet.style.transform = "rotate(" + hoek + "deg)";
+      links = !links;
+      voet.addEventListener("animationend", () => voet.remove());
+      document.body.appendChild(voet);
+    }, 220);
+  })();
+
+  // Bordspel: Kat naar de Viskom
+  (function () {
+    const EIND = 24;
+    // Speciale vakjes: type bepaalt de opmaak, "stap" is verplaatsing
+    const speciaal = {
+      3:  { t: "vis",   e: "🐟", stap: 2,  tekst: "een lekker visje! 2 vakjes vooruit" },
+      6:  { t: "extra", e: "🧶", extra: true, tekst: "een bolletje wol! nog een keer gooien" },
+      9:  { t: "terug", e: "🛁", stap: -3, tekst: "een bad! 3 vakjes terug" },
+      12: { t: "vis",   e: "🐭", stap: 3,  tekst: "een muisje gevangen! 3 vakjes vooruit" },
+      15: { t: "slaap", e: "😴", slaap: true, tekst: "een dutje... een beurt overslaan" },
+      18: { t: "terug", e: "🐕", stap: -4, tekst: "een hond! 4 vakjes terug" },
+      21: { t: "vis",   e: "🐟", stap: 2,  tekst: "nog een visje! 2 vakjes vooruit" }
+    };
+    const bordEl = document.getElementById("bord");
+    const bericht = document.getElementById("spelbericht");
+    const gooiKnop = document.getElementById("gooi");
+    const dobbelEl = document.getElementById("dobbel");
+    const namen = ["Jij", "Lio"];
+    const vakken = [];
+    let pos, slaat, klaar, bezig;
+
+    // Slangvorm: rij voor rij, om en om van links naar rechts
+    for (let r = 0; r < 5; r++) {
+      const rij = [];
+      for (let k = 0; k < 5; k++) {
+        const i = r * 5 + k;
+        const v = document.createElement("div");
+        const s = speciaal[i];
+        v.className = "vak" + (s ? " " + s.t : "") + (i === EIND ? " einde" : "");
+        v.innerHTML = "<small>" + (i === 0 ? "start" : i) + "</small>" + (i === EIND ? "🥣" : s ? s.e : "");
+        vakken[i] = v;
+        rij.push(v);
+      }
+      if (r % 2) rij.reverse();
+      rij.forEach(v => bordEl.appendChild(v));
+    }
+
+    // Uitleg naast het bord, opgebouwd uit dezelfde vakjes als het spel zelf
+    const uitleg = document.getElementById("uitleg");
+    const regels = [["😺", "Jij"], ["🐈‍⬛", "Lio, de tegenstander"], ["🥣", "De viskom: wie hier het eerst is, wint!"]];
+    const uitlegTekst = { 3: "Lekker visje: 2 vakjes vooruit", 6: "Bolletje wol: nog een keer gooien", 9: "Bad: 3 vakjes terug", 12: "Muisje: 3 vakjes vooruit", 15: "Dutje: een beurt overslaan", 18: "Hond: 4 vakjes terug", 21: "Nog een visje: 2 vakjes vooruit" };
+    const gezien = new Set();
+    Object.keys(speciaal).forEach(i => {
+      const s = speciaal[i];
+      if (s.e === "🐟" && gezien.has("🐟")) return; // vis staat maar één keer in de uitleg
+      gezien.add(s.e);
+      regels.push([s.e, s.e === "🐟" ? "Lekker visje: 2 vakjes vooruit" : uitlegTekst[i]]);
+    });
+    uitleg.innerHTML = "<h3>Wat betekent wat?</h3><ul>" +
+      regels.map(r => "<li><span>" + r[0] + "</span><span>" + r[1] + "</span></li>").join("") + "</ul>";
+
+    const pionnen = [document.createElement("span"), document.createElement("span")];
+    pionnen[0].className = "pion jij"; pionnen[0].textContent = "😺";
+    pionnen[1].className = "pion pc";  pionnen[1].textContent = "🐈‍⬛";
+
+    const ZIJDEN = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+
+    // Een dobbelsteen die van links naar rechts over het scherm rolt en dan blijft liggen
+    function rolDobbel(worp) {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return wacht(300);
+      return new Promise(klaarRol => {
+        const d = document.createElement("div");
+        d.textContent = ZIJDEN[Math.floor(Math.random() * 6)];
+        d.setAttribute("aria-hidden", "true");
+        d.style.cssText = "position:fixed;left:0;top:0;z-index:20;pointer-events:none;font-size:90px;line-height:1;" +
+          "color:#7c5cc4;filter:drop-shadow(0 8px 10px rgba(124,92,196,0.35));";
+        document.body.appendChild(d);
+        const b = window.innerWidth, h = window.innerHeight;
+        const los = (a, z) => a + Math.random() * (z - a);
+        // steeds een andere start (links of rechts) en een andere landingsplek
+        const vanLinks = Math.random() < 0.5;
+        const xs = vanLinks ? -120 : b + 30, ys = los(0.05, 0.7) * h;
+        const xl = los(0.12, 0.88) * b - 45, yl = los(0.3, 0.8) * h;
+        const draai = (Math.random() < 0.5 ? -1 : 1) * los(900, 1440);
+        const hoogte = () => los(0.08, 0.22) * h;
+        // punt op de weg (t = 0..1) met een stuiter omhoog
+        const punt = (t, stuiter, hoek) =>
+          "translate(" + (xs + (xl - xs) * t) + "px," + (ys + (yl - ys) * t - stuiter) + "px) rotate(" + (draai * hoek) + "deg)";
+        const anim = d.animate([
+          { transform: punt(0, 0, 0), offset: 0 },
+          { transform: punt(0.3, 0, 0.3), offset: 0.25 },
+          { transform: punt(0.5, hoogte(), 0.55), offset: 0.4 },
+          { transform: punt(0.75, 0, 0.8), offset: 0.65 },
+          { transform: punt(0.9, hoogte() * 0.3, 0.95), offset: 0.82 },
+          { transform: punt(1, 0, 1), offset: 1 }
+        ], { duration: los(1100, 1600), easing: "ease-out", fill: "forwards" });
+        // tijdens het rollen wisselt het getal snel, op het eind ligt hij op de echte worp
+        const wissel = setInterval(() => { d.textContent = ZIJDEN[Math.floor(Math.random() * 6)]; }, 90);
+        anim.onfinish = () => {
+          clearInterval(wissel);
+          d.textContent = ZIJDEN[worp - 1];
+          setTimeout(() => {
+            d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).onfinish = () => {
+              d.remove(); klaarRol();
+            };
+          }, 500);
+        };
+      });
+    }
+
+    function teken() { pionnen.forEach((p, n) => vakken[pos[n]].appendChild(p)); }
+    function zeg(t) { bericht.textContent = t; }
+    function wacht(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function nieuw() {
+      if (bezig) return; // wacht tot de beurt klaar is
+      pos = [0, 0]; slaat = [false, false]; klaar = false; bezig = false;
+      dobbelEl.textContent = "";
+      gooiKnop.disabled = false;
+      teken();
+      zeg("Gooi de dobbelsteen om te beginnen!");
+    }
+
+    // Loop rustig vakje voor vakje naar het doel, met een klein huppeltje per stap
+    async function loop(n, doel) {
+      const stap = doel > pos[n] ? 1 : -1;
+      while (pos[n] !== doel) {
+        const voor = pionnen[n].getBoundingClientRect();
+        pos[n] += stap;
+        teken();
+        // glijd van het oude vakje naar het nieuwe, met een huppeltje
+        const na = pionnen[n].getBoundingClientRect();
+        const dx = voor.left - na.left, dy = voor.top - na.top;
+        pionnen[n].animate([
+          { transform: "translate(" + dx + "px," + dy + "px)" },
+          { transform: "translate(" + dx / 2 + "px," + (dy / 2 - 16) + "px)", offset: 0.5 },
+          { transform: "translate(0,0)" }
+        ], { duration: 320, easing: "ease-in-out" });
+        await wacht(340);
+      }
+    }
+
+    // Eén beurt voor speler n; geeft terug of die speler nog een keer mag
+    async function beurt(n) {
+      const wie = namen[n];
+      if (slaat[n]) {
+        slaat[n] = false;
+        zeg(wie + (n ? " slaapt" : " slaap") + " nog... beurt overgeslagen. 💤");
+        await wacht(1200);
+        return false;
+      }
+      const worp = 1 + Math.floor(Math.random() * 6);
+      zeg(wie + (n ? " gooit" : " gooi") + "...");
+      await rolDobbel(worp);
+      dobbelEl.textContent = ZIJDEN[worp - 1];
+      zeg(wie + " gooit " + worp + "!");
+      await wacht(600);
+      await loop(n, Math.min(EIND, pos[n] + worp));
+      await wacht(400);
+      const s = speciaal[pos[n]];
+      let nogEens = false;
+      if (pos[n] < EIND && s) {
+        zeg(wie + (n ? " komt" : " kom") + " op " + s.tekst + ". " + s.e);
+        if (s.slaap) slaat[n] = true;
+        if (s.extra) nogEens = true;
+        await wacht(900);
+        if (s.stap) await loop(n, Math.max(0, pos[n] + s.stap));
+        await wacht(300);
+      }
+      if (pos[n] >= EIND) {
+        klaar = true;
+        zeg(n ? "Lio is het eerst bij de viskom! 🐈‍⬛ Nog een keer?" : "Hoera, jij wint! 🎉 Je bent het eerst bij de viskom! 🥣");
+      }
+      return nogEens && !klaar;
+    }
+
+    async function speel() {
+      if (bezig || klaar) return;
+      bezig = true; gooiKnop.disabled = true;
+      let opnieuw;
+      do { opnieuw = await beurt(0); } while (opnieuw);
+      if (!klaar) {
+        do { opnieuw = await beurt(1); } while (opnieuw);
+      }
+      bezig = false;
+      if (klaar) return;
+      gooiKnop.disabled = false;
+      zeg("Jouw beurt! Gooi de dobbelsteen. 🎲");
+    }
+
+    gooiKnop.addEventListener("click", speel);
+    document.getElementById("spelOpnieuw").addEventListener("click", nieuw);
+    nieuw();
+  })();
+
+  // Memory met Lio
+  (function () {
+    const kaartjes = [
+      { id: "slaap", foto: "Lio.jpeg", alt: "Lio slaapt" },
+      { id: "gezicht", foto: "Lio%20gezicht.jpeg", alt: "Lio met zijn roze neusje" },
+      { id: "stoel", foto: "Lio%20stoel.jpeg", alt: "Lio op de stoel" },
+      { id: "vis", e: "🐟", alt: "vis" },
+      { id: "muis", e: "🐭", alt: "muis" },
+      { id: "wol", e: "🧶", alt: "bolletje wol" },
+      { id: "melk", e: "🥛", alt: "melk" },
+      { id: "vogel", e: "🐦", alt: "vogeltje" },
+      { id: "veer", e: "🪶", alt: "veertje" },
+      { id: "mandje", e: "🧺", alt: "mandje" },
+      { id: "belletje", e: "🔔", alt: "belletje" },
+      { id: "strik", e: "🎀", alt: "strikje" }
+    ];
+    const memoryBord = document.getElementById("memoryBord");
+    const memoryBericht = document.getElementById("memoryBericht");
+    let open, gevonden, zetten, geblokkeerd;
+
+    function schud(lijst) {
+      for (let i = lijst.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [lijst[i], lijst[j]] = [lijst[j], lijst[i]];
+      }
+      return lijst;
+    }
+
+    function nieuwMemory() {
+      open = []; gevonden = 0; zetten = 0; geblokkeerd = false;
+      memoryBord.innerHTML = "";
+      memoryBericht.textContent = "Kies een kaartje!";
+      schud(kaartjes.concat(kaartjes)).forEach(k => {
+        const knop = document.createElement("button");
+        knop.className = "kaartje";
+        knop.dataset.id = k.id;
+        knop.setAttribute("aria-label", "Kaartje");
+        const inhoud = k.foto
+          ? '<img src="' + k.foto + '" alt="' + k.alt + '">'
+          : '<span role="img" aria-label="' + k.alt + '">' + k.e + '</span>';
+        knop.innerHTML = '<div class="binnen"><div class="voor">🐾</div><div class="achter">' + inhoud + '</div></div>';
+        knop.addEventListener("click", () => draai(knop));
+        memoryBord.appendChild(knop);
+      });
+    }
+
+    function draai(knop) {
+      if (geblokkeerd || knop.classList.contains("open") || knop.classList.contains("gevonden")) return;
+      knop.classList.add("open");
+      open.push(knop);
+      if (open.length < 2) return;
+      zetten++;
+      const [a, b] = open;
+      open = [];
+      if (a.dataset.id === b.dataset.id) {
+        a.classList.replace("open", "gevonden");
+        b.classList.replace("open", "gevonden");
+        gevonden++;
+        miauw();
+        if (gevonden === kaartjes.length) {
+          memoryBericht.textContent = "Gefeliciteerd! 🎉 Alle paren gevonden in " + zetten + " beurten!";
+          feest();
+        } else {
+          memoryBericht.textContent = "Een paar! 😺";
+        }
+      } else {
+        geblokkeerd = true;
+        memoryBericht.textContent = "Helaas, probeer het nog eens!";
+        setTimeout(() => {
+          a.classList.remove("open");
+          b.classList.remove("open");
+          geblokkeerd = false;
+        }, 900);
+      }
+    }
+
+    document.getElementById("memoryOpnieuw").addEventListener("click", nieuwMemory);
+    nieuwMemory();
+  })();
+
+  // Kattenwoordzoeker
+  (function () {
+    const MAAT = 12, AANTAL = 10;
+    const woorden = ["KRABPAAL", "KATTENBAK", "KATTENMAND", "SPEELMUIS", "SNORHAREN", "DIERENARTS", "KATTENVOER",
+      "KLAUWEN", "LUIPAARD", "MUIZENJAGER", "KATTENKRUID", "BOLLETJEWOL", "KRABBEN", "TROSTEN", "STAARTJE",
+      "NACHTZICHT", "VACHTBORSTEL", "DUTJEDOEN", "KATTENLUIK", "PANTER", "TIJGER", "KITTENS", "PUMA", "SPINNEN"];
+    // alle acht richtingen: rechts, links, omlaag, omhoog en de vier schuine
+    const richtingen = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+    const bordEl = document.getElementById("zoekBord");
+    const lijstEl = document.getElementById("zoekLijst");
+    const berichtEl = document.getElementById("zoekBericht");
+    let rooster, cellen, gekozen, gevonden, start, eind;
+
+    const los = n => Math.floor(Math.random() * n);
+
+    function plaats(woord) {
+      for (let poging = 0; poging < 300; poging++) {
+        const [dr, dk] = richtingen[los(richtingen.length)];
+        const ruimte = woord.length - 1;
+        // begincel zo kiezen dat het hele woord binnen het raster blijft
+        const r0 = dr < 0 ? ruimte + los(MAAT - ruimte) : los(MAAT - dr * ruimte);
+        const k0 = dk < 0 ? ruimte + los(MAAT - ruimte) : los(MAAT - dk * ruimte);
+        let past = true;
+        for (let i = 0; i < woord.length && past; i++) {
+          const c = rooster[r0 + dr * i][k0 + dk * i];
+          if (c && c !== woord[i]) past = false;
+        }
+        if (!past) continue;
+        for (let i = 0; i < woord.length; i++) rooster[r0 + dr * i][k0 + dk * i] = woord[i];
+        return true;
+      }
+      return false;
+    }
+
+    function nieuwSpel() {
+      let gekozenWoorden;
+      do {
+        rooster = Array.from({ length: MAAT }, () => Array(MAAT).fill(""));
+        gekozenWoorden = woorden.slice().sort(() => Math.random() - 0.5).slice(0, AANTAL)
+          .sort((a, b) => b.length - a.length);
+      } while (!gekozenWoorden.every(plaats));
+      // opvulletters komen uit de gezochte woorden zelf, zodat ze goed verwarren
+      const abc = gekozenWoorden.join("");
+      for (let r = 0; r < MAAT; r++) for (let k = 0; k < MAAT; k++) {
+        if (!rooster[r][k]) rooster[r][k] = abc[los(abc.length)];
+      }
+      gevonden = new Set();
+      gekozen = [];
+      bordEl.style.gridTemplateColumns = "repeat(" + MAAT + ", 1fr)";
+      bordEl.innerHTML = "";
+      cellen = [];
+      for (let r = 0; r < MAAT; r++) for (let k = 0; k < MAAT; k++) {
+        const d = document.createElement("div");
+        d.className = "letter";
+        d.textContent = rooster[r][k];
+        d.dataset.r = r; d.dataset.k = k;
+        bordEl.appendChild(d);
+        cellen.push(d);
+      }
+      lijstEl.innerHTML = "";
+      gekozenWoorden.slice().sort().forEach(w => {
+        const li = document.createElement("li");
+        li.textContent = w;
+        li.dataset.woord = w;
+        lijstEl.appendChild(li);
+      });
+      berichtEl.textContent = "Veel succes! 🐾";
+    }
+
+    const cel = (r, k) => cellen[r * MAAT + k];
+
+    // Cellen op een rechte lijn van start naar eind (rechtdoor of schuin), anders alleen de startcel
+    function lijn(a, b) {
+      const dr = b.r - a.r, dk = b.k - a.k;
+      const n = Math.max(Math.abs(dr), Math.abs(dk));
+      if (dr !== 0 && dk !== 0 && Math.abs(dr) !== Math.abs(dk)) return [a];
+      const sr = Math.sign(dr), sk = Math.sign(dk);
+      return Array.from({ length: n + 1 }, (_, i) => ({ r: a.r + sr * i, k: a.k + sk * i }));
+    }
+
+    function toon(punten) {
+      cellen.forEach(c => c.classList.remove("sel"));
+      punten.forEach(p => cel(p.r, p.k).classList.add("sel"));
+    }
+
+    function celOnder(e) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      return el && el.classList.contains("letter") ? { r: +el.dataset.r, k: +el.dataset.k } : null;
+    }
+
+    bordEl.addEventListener("pointerdown", (e) => {
+      const p = celOnder(e);
+      if (!p) return;
+      start = p; eind = p;
+      gekozen = [p];
+      toon(gekozen);
+    });
+    bordEl.addEventListener("pointermove", (e) => {
+      if (!start) return;
+      const p = celOnder(e);
+      if (!p) return;
+      eind = p;
+      gekozen = lijn(start, p);
+      toon(gekozen);
+    });
+    function loslaten() {
+      if (!start) return;
+      const tekst = gekozen.map(p => rooster[p.r][p.k]).join("");
+      const omgekeerd = tekst.split("").reverse().join("");
+      const lijstItem = [...lijstEl.children].find(li =>
+        !gevonden.has(li.dataset.woord) && (li.dataset.woord === tekst || li.dataset.woord === omgekeerd));
+      if (lijstItem && gekozen.length > 1) {
+        const w = lijstItem.dataset.woord;
+        gevonden.add(w);
+        lijstItem.classList.add("klaar");
+        gekozen.forEach(p => cel(p.r, p.k).classList.add("gevonden"));
+        miauw();
+        berichtEl.textContent = gevonden.size === lijstEl.children.length
+          ? "Gefeliciteerd! 🎉 Je hebt alle woorden gevonden!"
+          : "Goed zo, je vond " + w + "! 😺";
+        if (gevonden.size === lijstEl.children.length) feest();
+      }
+      start = null;
+      toon([]);
+    }
+    ["pointerup", "pointercancel"].forEach(n => window.addEventListener(n, loslaten));
+
+    document.getElementById("zoekOpnieuw").addEventListener("click", nieuwSpel);
+    nieuwSpel();
+  })();
+
+  // Kattenpuzzel: 50 stukjes van een foto van Lio, verwissel ze tot de foto klopt
+  (function () {
+    const AANTAL = 50;
+    let KOL = 10, RIJ = 5; // een liggende foto krijgt 10 x 5 stukjes, een staande 5 x 10
+    const plaatjes = [
+      { f: "Lio.jpeg", alt: "Lio slaapt" },
+      { f: "Lio%20gezicht.jpeg", alt: "Lio met zijn roze neusje" },
+      { f: "Lio%20stoel.jpeg", alt: "Lio op de stoel" }
+    ];
+    const bordEl = document.getElementById("puzzelBord");
+    const berichtEl = document.getElementById("puzzelBericht");
+    const voorbeeld = document.getElementById("puzzelVoorbeeld");
+    const knoppenEl = document.getElementById("puzzelKnoppen");
+    let huidig = 0, stukken = [], vak = [], gekozen = null, herkomst = null, klaar = false, laadNr = 0;
+
+    plaatjes.forEach((p, i) => {
+      const b = document.createElement("button");
+      b.className = "puzzelKeuze";
+      b.title = p.alt;
+      b.innerHTML = '<img src="' + p.f + '" alt="' + p.alt + '">';
+      b.addEventListener("click", () => { huidig = i; start(); });
+      knoppenEl.appendChild(b);
+    });
+
+    function toon() {
+      let goed = 0;
+      stukken.forEach((el, pos) => {
+        const id = vak[pos];
+        el.style.backgroundPosition = (id % KOL) / (KOL - 1) * 100 + "% " + Math.floor(id / KOL) / (RIJ - 1) * 100 + "%";
+        const juist = id === pos;
+        if (juist) goed++;
+        el.classList.toggle("goed", juist);
+        el.classList.toggle("gekozen", pos === gekozen);
+      });
+      return goed;
+    }
+
+    function wissel(a, b) {
+      [vak[a], vak[b]] = [vak[b], vak[a]];
+      gekozen = null;
+      const goed = toon();
+      if (goed === AANTAL) {
+        klaar = true;
+        berichtEl.textContent = "Gelukt! 🎉 De puzzel van Lio is af!";
+        feest();
+      } else {
+        berichtEl.textContent = goed + " van de " + AANTAL + " stukjes liggen goed. 🧩";
+      }
+    }
+
+    function start() {
+      const nr = ++laadNr;
+      const p = plaatjes[huidig];
+      knoppenEl.querySelectorAll("button").forEach((b, i) => b.classList.toggle("actief", i === huidig));
+      voorbeeld.src = p.f;
+      voorbeeld.alt = "Zo moet het worden: " + p.alt;
+      const img = new Image();
+      img.onload = () => {
+        if (nr !== laadNr) return;
+        // het bord krijgt dezelfde vorm als de foto, zodat er niets uitgerekt wordt
+        const ratio = img.naturalWidth / img.naturalHeight;
+        KOL = ratio >= 1 ? 10 : 5; RIJ = AANTAL / KOL;
+        bordEl.style.setProperty("--kol", KOL);
+        bordEl.style.setProperty("--rij", RIJ);
+        bordEl.style.setProperty("--ratio", ratio);
+        bordEl.style.setProperty("--plaat", 'url("' + p.f + '")');
+        bordEl.innerHTML = "";
+        stukken = [];
+        for (let i = 0; i < AANTAL; i++) {
+          const d = document.createElement("div");
+          d.className = "puzzelStuk";
+          d.dataset.pos = i;
+          bordEl.appendChild(d);
+          stukken.push(d);
+        }
+        vak = Array.from({ length: AANTAL }, (_, i) => i);
+        // door elkaar husselen, en zorgen dat het niet toevallig al af is
+        do {
+          for (let i = vak.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [vak[i], vak[j]] = [vak[j], vak[i]];
+          }
+        } while (vak.every((id, pos) => id === pos));
+        gekozen = null; herkomst = null; klaar = false;
+        const goed = toon();
+        berichtEl.textContent = goed + " van de " + AANTAL + " stukjes liggen goed. 🧩";
+      };
+      img.src = p.f;
+    }
+
+    // Tikken: kies een stukje en tik op een tweede om te wisselen. Slepen naar een ander stukje kan ook.
+    function stukOnder(e) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      return el && el.classList.contains("puzzelStuk") ? +el.dataset.pos : null;
+    }
+    bordEl.addEventListener("pointerdown", (e) => {
+      if (klaar) return;
+      const p = stukOnder(e);
+      if (p === null) return;
+      if (gekozen !== null && gekozen !== p) { wissel(gekozen, p); herkomst = null; return; }
+      herkomst = p;
+      gekozen = p;
+      toon();
+    });
+    bordEl.addEventListener("pointerup", (e) => {
+      if (herkomst === null) return;
+      const p = stukOnder(e);
+      const van = herkomst;
+      herkomst = null;
+      if (p !== null && p !== van) wissel(van, p);
+    });
+
+    document.getElementById("puzzelOpnieuw").addEventListener("click", start);
+    start();
+  })();
+
+  // Tekenbord
+  const bord =document.getElementById("tekenbord");
+  const pen = bord.getContext("2d");
+  pen.fillStyle = "white";
+  pen.fillRect(0, 0, bord.width, bord.height);
+  pen.lineCap = "round";
+  pen.lineJoin = "round";
+
+  const palet = ["#b79cf0", "#8fbdf0", "#ffb3cf", "#3f3060", "#8b6b4a", "#f2a65a", "#f5d76e", "#7fcf9a", "#ffffff"];
+  let kleur = palet[0], dikte = 10, gum = false;
+  let tekent = false, vorigePunt = null;
+  let stempel = "";
+  const geschiedenis = [];
+
+  const kleurenVak = document.getElementById("kleuren");
+  palet.forEach((k, i) => {
+    const b = document.createElement("button");
+    b.className = "kleur" + (i === 0 ? " actief" : "");
+    b.style.background = k;
+    b.title = "Kleur";
+    b.addEventListener("click", () => {
+      kleur = k; gum = false;
+      document.getElementById("gum").classList.remove("actief");
+      kleurenVak.querySelectorAll(".kleur").forEach(x => x.classList.remove("actief"));
+      b.classList.add("actief");
+    });
+    kleurenVak.appendChild(b);
+  });
+
+  document.querySelectorAll("[data-dikte]").forEach(b => {
+    b.addEventListener("click", () => {
+      dikte = Number(b.dataset.dikte);
+      document.querySelectorAll("[data-dikte]").forEach(x => x.classList.remove("actief"));
+      b.classList.add("actief");
+    });
+  });
+
+  document.getElementById("gum").addEventListener("click", (e) => {
+    gum = !gum;
+    e.currentTarget.classList.toggle("actief", gum);
+    if (gum) kiesStempel("");
+  });
+
+  // Stempels: pootafdruk, kattenoortjes en vis
+  function kiesStempel(naam) {
+    stempel = naam;
+    document.querySelectorAll("[data-stempel]").forEach(b => b.classList.toggle("actief", b.dataset.stempel === naam));
+    if (naam) {
+      gum = false;
+      document.getElementById("gum").classList.remove("actief");
+    }
+  }
+  document.querySelectorAll("[data-stempel]").forEach(b => {
+    b.addEventListener("click", () => kiesStempel(b.dataset.stempel));
+  });
+
+  function ovaal(x, y, rx, ry) {
+    pen.beginPath();
+    pen.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    pen.fill();
+  }
+  function driehoek(a, b, c) {
+    pen.beginPath();
+    pen.moveTo(a[0], a[1]); pen.lineTo(b[0], b[1]); pen.lineTo(c[0], c[1]);
+    pen.closePath();
+    pen.fill();
+  }
+
+  const stempelTekenaars = {
+    poot(s) {
+      ovaal(0, 0.25 * s, 0.32 * s, 0.26 * s);
+      [[-0.42, -0.1], [-0.15, -0.4], [0.15, -0.4], [0.42, -0.1]].forEach(([dx, dy]) => ovaal(dx * s, dy * s, 0.13 * s, 0.17 * s));
+    },
+    oren(s) {
+      [-1, 1].forEach(z => {
+        pen.fillStyle = kleur;
+        driehoek([z * 0.6 * s, 0.3 * s], [z * 0.55 * s, -0.45 * s], [z * 0.1 * s, -0.05 * s]);
+        pen.fillStyle = "rgba(255, 255, 255, 0.45)";
+        driehoek([z * 0.47 * s, 0.15 * s], [z * 0.46 * s, -0.25 * s], [z * 0.22 * s, -0.03 * s]);
+      });
+    },
+    vis(s) {
+      ovaal(-0.1 * s, 0, 0.4 * s, 0.22 * s);
+      driehoek([0.22 * s, 0], [0.55 * s, -0.22 * s], [0.55 * s, 0.22 * s]);
+      pen.fillStyle = "white";
+      ovaal(-0.3 * s, -0.05 * s, 0.06 * s, 0.06 * s);
+      pen.fillStyle = "#3f3060";
+      ovaal(-0.3 * s, -0.05 * s, 0.03 * s, 0.03 * s);
+    }
+  };
+
+  function zetStempel(p) {
+    const s = dikte * 3 + 20;
+    pen.save();
+    pen.translate(p.x, p.y);
+    if (stempel === "poot") pen.rotate((Math.random() - 0.5) * 0.6);
+    pen.fillStyle = kleur;
+    stempelTekenaars[stempel](s);
+    pen.restore();
+  }
+
+  function punt(e) {
+    const r = bord.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * bord.width / r.width, y: (e.clientY - r.top) * bord.height / r.height };
+  }
+
+  bord.addEventListener("pointerdown", (e) => {
+    bord.setPointerCapture(e.pointerId);
+    geschiedenis.push(pen.getImageData(0, 0, bord.width, bord.height));
+    if (geschiedenis.length > 20) geschiedenis.shift();
+    if (stempel) { zetStempel(punt(e)); return; }
+    tekent = true;
+    vorigePunt = punt(e);
+    teken(vorigePunt, vorigePunt);
+  });
+  bord.addEventListener("pointermove", (e) => {
+    if (!tekent) return;
+    const nu = punt(e);
+    teken(vorigePunt, nu);
+    vorigePunt = nu;
+  });
+  ["pointerup", "pointercancel"].forEach(naam => bord.addEventListener(naam, () => { tekent = false; }));
+
+  function teken(van, naar) {
+    pen.strokeStyle = gum ? "white" : kleur;
+    pen.lineWidth = gum ? dikte * 2 : dikte;
+    pen.beginPath();
+    pen.moveTo(van.x, van.y);
+    pen.lineTo(naar.x, naar.y);
+    pen.stroke();
+  }
+
+  document.getElementById("terug").addEventListener("click", () => {
+    const vorige = geschiedenis.pop();
+    if (vorige) pen.putImageData(vorige, 0, 0);
+  });
+  document.getElementById("wis").addEventListener("click", () => {
+    geschiedenis.push(pen.getImageData(0, 0, bord.width, bord.height));
+    pen.fillStyle = "white";
+    pen.fillRect(0, 0, bord.width, bord.height);
+  });
+  document.getElementById("bewaar").addEventListener("click", () => {
+    const link = document.createElement("a");
+    link.download = "mijn-kat.png";
+    link.href = bord.toDataURL("image/png");
+    link.click();
+  });
+
+  // Foto's kiezen en laten zien
+  document.getElementById("fotoKies").addEventListener("change", (e) => {
+    const vak = document.getElementById("fotos");
+    for (const bestand of e.target.files) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(bestand);
+      img.alt = "Een kat";
+      vak.appendChild(img);
+    }
+  });
+</script>
+</body>
+</html>
