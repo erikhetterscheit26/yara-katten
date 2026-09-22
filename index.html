@@ -380,9 +380,53 @@
   .score { font-size: 2.2rem; margin: 10px 0; }
 
   footer { text-align: center; padding: 10px 20px 50px; color: #8a7fb0; }
+
+  /* Naam invullen */
+  .naamRij { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  #naamWissel { padding: 6px 14px; font-size: 0.85rem; }
+  .naamOverlay {
+    position: fixed; inset: 0; z-index: 100;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(250,247,255,0.92);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    padding: 20px;
+  }
+  .naamOverlay.open { display: flex; }
+  .naamKaart {
+    background: white; border-radius: 28px; padding: 36px 30px;
+    max-width: 340px; width: 100%; text-align: center;
+    box-shadow: 0 20px 60px rgba(124,92,196,0.35);
+  }
+  .naamKaart h2 { margin: 6px 0 20px; font-size: 1.4rem; }
+  .naamKaart input {
+    width: 100%; padding: 12px 16px; font-size: 1.05rem; font-family: inherit;
+    border: 2px solid var(--blauw); border-radius: 999px; margin-bottom: 16px;
+    text-align: center; color: var(--tekst); box-sizing: border-box;
+  }
+  .naamKaart input:focus { outline: none; border-color: var(--lila); }
+
+  /* Topscores */
+  .scorebord {
+    margin: 18px auto 0; background: white; border-radius: 18px; padding: 14px 18px;
+    box-shadow: 0 3px 10px rgba(124,92,196,0.15); max-width: 320px;
+  }
+  .scorebord h4 { margin: 0 0 8px; font-size: 0.85rem; color: var(--lila-donker); text-transform: uppercase; letter-spacing: 0.05em; text-align: center; }
+  .scorelijst { list-style: none; margin: 0; padding: 0; text-align: left; }
+  .scorelijst li { padding: 4px 2px; font-size: 0.98rem; display: flex; gap: 8px; align-items: baseline; }
+  .scorelijst b { color: var(--tekst); }
+  .scorelijst .waarde { margin-left: auto; color: #8a7fb0; font-weight: 600; }
 </style>
 </head>
 <body>
+
+<div class="naamOverlay" id="naamOverlay">
+  <div class="naamKaart">
+    <div style="font-size:3rem;">🐱</div>
+    <h2>Hoi! Hoe heet jij?</h2>
+    <input type="text" id="naamInvoer" maxlength="20" placeholder="Jouw naam" autocomplete="off">
+    <button id="naamStart">Start! 🎉</button>
+  </div>
+</div>
 
 <div class="renner" aria-hidden="true">
   <svg viewBox="0 0 160 100">
@@ -433,6 +477,10 @@
   <span class="label">🐾 Alles over katten</span>
   <h1>🐱 Yara's Kattenwebsite 🐱</h1>
   <div class="ondertitel">Weetjes, foto's en natuurlijk Lio</div>
+  <div class="naamRij">
+    <span id="naamLabel"></span>
+    <button class="klein" id="naamWissel">✏️ Andere naam</button>
+  </div>
 </header>
 
 <main>
@@ -481,6 +529,7 @@
       <div class="uitleg" id="uitleg"></div>
     </div>
     <div class="spelbericht" id="spelbericht">Gooi de dobbelsteen om te beginnen!</div>
+    <div class="scorebord" id="bordScorebord"></div>
     <div class="midden knoppenrij">
       <button id="gooi">🎲 Gooi <span class="dobbel" id="dobbel"></span></button>
       <button class="klein" id="spelOpnieuw">🔄 Opnieuw</button>
@@ -492,6 +541,7 @@
     <p class="midden">Draai twee kaartjes om en zoek de paren!</p>
     <div class="memoryBord" id="memoryBord"></div>
     <div class="spelbericht" id="memoryBericht"></div>
+    <div class="scorebord" id="memoryScorebord"></div>
     <div class="midden knoppenrij">
       <button class="klein" id="memoryOpnieuw">🔄 Opnieuw</button>
     </div>
@@ -505,6 +555,7 @@
       <div class="zoekLijst"><h3>Zoek deze woorden:</h3><ul id="zoekLijst"></ul></div>
     </div>
     <div class="spelbericht" id="zoekBericht"></div>
+    <div class="scorebord" id="zoekScorebord"></div>
     <div class="midden knoppenrij">
       <button class="klein" id="zoekOpnieuw">🔄 Nieuwe woordzoeker</button>
     </div>
@@ -519,6 +570,7 @@
     </div>
     <div class="puzzelBord" id="puzzelBord"></div>
     <div class="spelbericht" id="puzzelBericht"></div>
+    <div class="scorebord" id="puzzelScorebord"></div>
     <div class="midden knoppenrij">
       <button class="klein" id="puzzelOpnieuw">🔄 Opnieuw husselen</button>
     </div>
@@ -697,6 +749,63 @@
   document.getElementById("knopBlaas").addEventListener("click", blaas);
   document.getElementById("knopSpin").addEventListener("click", spin);
 
+  // Naam invullen en onthouden
+  function huidigeNaam() { return localStorage.getItem("yaraNaam") || "Speler"; }
+  function ontsnap(t) {
+    return String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  (function () {
+    const overlay = document.getElementById("naamOverlay");
+    const invoer = document.getElementById("naamInvoer");
+    const naamLabel = document.getElementById("naamLabel");
+    function toonNaam() { naamLabel.textContent = "👋 Hoi, " + huidigeNaam() + "!"; }
+    function open() {
+      invoer.value = localStorage.getItem("yaraNaam") || "";
+      overlay.classList.add("open");
+      setTimeout(() => invoer.focus(), 50);
+    }
+    function bevestig() {
+      const naam = invoer.value.trim().slice(0, 20) || "Speler";
+      localStorage.setItem("yaraNaam", naam);
+      overlay.classList.remove("open");
+      toonNaam();
+    }
+    document.getElementById("naamStart").addEventListener("click", bevestig);
+    invoer.addEventListener("keydown", (e) => { if (e.key === "Enter") bevestig(); });
+    document.getElementById("naamWissel").addEventListener("click", open);
+    if (!localStorage.getItem("yaraNaam")) open(); else toonNaam();
+  })();
+
+  // Topscores per spelletje, bewaard op dit apparaat
+  const SCORE_SLEUTEL = "yaraScores";
+  function laadScores() {
+    try { return JSON.parse(localStorage.getItem(SCORE_SLEUTEL)) || {}; } catch (e) { return {}; }
+  }
+  function bewaarScore(spel, waarde, richting) {
+    const alles = laadScores();
+    const lijst = alles[spel] || [];
+    lijst.push({ naam: huidigeNaam(), waarde });
+    lijst.sort((a, b) => richting === "hoog" ? b.waarde - a.waarde : a.waarde - b.waarde);
+    alles[spel] = lijst.slice(0, 3);
+    localStorage.setItem(SCORE_SLEUTEL, JSON.stringify(alles));
+  }
+  function toonScorebord(el, spel, opmaak) {
+    if (!el) return;
+    const top3 = laadScores()[spel] || [];
+    if (!top3.length) {
+      el.innerHTML = "<h4>Topscores</h4><div style='text-align:center;color:#8a7fb0;'>Nog geen scores. Wees de eerste! 🐾</div>";
+      return;
+    }
+    const medailles = ["🥇", "🥈", "🥉"];
+    el.innerHTML = "<h4>Topscores</h4><ol class='scorelijst'>" +
+      top3.map((s, i) => "<li>" + medailles[i] + " <b>" + ontsnap(s.naam) + "</b><span class='waarde'>" + opmaak(s.waarde) + "</span></li>").join("") +
+      "</ol>";
+  }
+  function tijdFormat(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m > 0 ? m + ":" + String(s).padStart(2, "0") + " min" : s + " sec";
+  }
+
   // Kattenquiz
   const vragen = [
     { v: "Hoe heet een mannetjeskat?", a: ["Een kater", "Een poes", "Een kitten"], goed: 0, uitleg: "Een vrouwtje heet een poes. 😺" },
@@ -766,9 +875,12 @@
     if (punten === vragen.length) boodschap = "Perfect! Jij bent een echte kattenexpert! 🏆";
     else if (punten >= 4) boodschap = "Super gedaan! Bijna alles goed! 🌟";
     if (punten > 10) feest();
+    bewaarScore("quiz", punten, "hoog");
     quizVak.innerHTML =
       '<div class="score">' + punten + ' van ' + vragen.length + ' goed</div>' +
-      '<div class="vraag">' + boodschap + '</div>';
+      '<div class="vraag">' + boodschap + '</div>' +
+      '<div class="scorebord" id="quizScorebord"></div>';
+    toonScorebord(document.getElementById("quizScorebord"), "quiz", w => w + " / " + vragen.length + " goed");
     const opnieuw = document.createElement("button");
     opnieuw.textContent = "Nog een keer";
     opnieuw.addEventListener("click", () => { nr = 0; punten = 0; toonVraag(); });
@@ -898,7 +1010,7 @@
     const dobbelEl = document.getElementById("dobbel");
     const namen = ["Jij", "Lio"];
     const vakken = [];
-    let pos, slaat, klaar, bezig;
+    let pos, slaat, klaar, bezig, spelerBeurten;
 
     // Slangvorm: rij voor rij, om en om van links naar rechts
     for (let r = 0; r < 5; r++) {
@@ -985,11 +1097,12 @@
 
     function nieuw() {
       if (bezig) return; // wacht tot de beurt klaar is
-      pos = [0, 0]; slaat = [false, false]; klaar = false; bezig = false;
+      pos = [0, 0]; slaat = [false, false]; klaar = false; bezig = false; spelerBeurten = 0;
       dobbelEl.textContent = "";
       gooiKnop.disabled = false;
       teken();
       zeg("Gooi de dobbelsteen om te beginnen!");
+      toonScorebord(document.getElementById("bordScorebord"), "bordspel", w => w + " beurten");
     }
 
     // Loop rustig vakje voor vakje naar het doel, met een klein huppeltje per stap
@@ -1014,6 +1127,7 @@
     // Eén beurt voor speler n; geeft terug of die speler nog een keer mag
     async function beurt(n) {
       const wie = namen[n];
+      if (n === 0) spelerBeurten++;
       if (slaat[n]) {
         slaat[n] = false;
         zeg(wie + (n ? " slaapt" : " slaap") + " nog... beurt overgeslagen. 💤");
@@ -1040,6 +1154,10 @@
       }
       if (pos[n] >= EIND) {
         klaar = true;
+        if (n === 0) {
+          bewaarScore("bordspel", spelerBeurten, "laag");
+          toonScorebord(document.getElementById("bordScorebord"), "bordspel", w => w + " beurten");
+        }
         zeg(n ? "Lio is het eerst bij de viskom! 🐈‍⬛ Nog een keer?" : "Hoera, jij wint! 🎉 Je bent het eerst bij de viskom! 🥣");
       }
       return nogEens && !klaar;
@@ -1096,6 +1214,7 @@
       open = []; gevonden = 0; zetten = 0; geblokkeerd = false;
       memoryBord.innerHTML = "";
       memoryBericht.textContent = "Kies een kaartje!";
+      toonScorebord(document.getElementById("memoryScorebord"), "memory", w => w + " beurten");
       schud(kaartjes.concat(kaartjes)).forEach(k => {
         const knop = document.createElement("button");
         knop.className = "kaartje";
@@ -1125,6 +1244,8 @@
         miauw();
         if (gevonden === kaartjes.length) {
           memoryBericht.textContent = "Gefeliciteerd! 🎉 Alle paren gevonden in " + zetten + " beurten!";
+          bewaarScore("memory", zetten, "laag");
+          toonScorebord(document.getElementById("memoryScorebord"), "memory", w => w + " beurten");
           feest();
         } else {
           memoryBericht.textContent = "Een paar! 😺";
@@ -1155,7 +1276,7 @@
     const bordEl = document.getElementById("zoekBord");
     const lijstEl = document.getElementById("zoekLijst");
     const berichtEl = document.getElementById("zoekBericht");
-    let rooster, cellen, gekozen, gevonden, start, eind;
+    let rooster, cellen, gekozen, gevonden, start, eind, startTijd;
 
     const los = n => Math.floor(Math.random() * n);
 
@@ -1211,6 +1332,8 @@
         lijstEl.appendChild(li);
       });
       berichtEl.textContent = "Veel succes! 🐾";
+      startTijd = Date.now();
+      toonScorebord(document.getElementById("zoekScorebord"), "woordzoeker", tijdFormat);
     }
 
     const cel = (r, k) => cellen[r * MAAT + k];
@@ -1264,7 +1387,12 @@
         berichtEl.textContent = gevonden.size === lijstEl.children.length
           ? "Gefeliciteerd! 🎉 Je hebt alle woorden gevonden!"
           : "Goed zo, je vond " + w + "! 😺";
-        if (gevonden.size === lijstEl.children.length) feest();
+        if (gevonden.size === lijstEl.children.length) {
+          const tijd = Math.round((Date.now() - startTijd) / 1000);
+          bewaarScore("woordzoeker", tijd, "laag");
+          toonScorebord(document.getElementById("zoekScorebord"), "woordzoeker", tijdFormat);
+          feest();
+        }
       }
       start = null;
       toon([]);
@@ -1288,7 +1416,7 @@
     const berichtEl = document.getElementById("puzzelBericht");
     const voorbeeld = document.getElementById("puzzelVoorbeeld");
     const knoppenEl = document.getElementById("puzzelKnoppen");
-    let huidig = 0, stukken = [], vak = [], gekozen = null, herkomst = null, klaar = false, laadNr = 0;
+    let huidig = 0, stukken = [], vak = [], gekozen = null, herkomst = null, klaar = false, laadNr = 0, startTijd;
 
     plaatjes.forEach((p, i) => {
       const b = document.createElement("button");
@@ -1319,6 +1447,9 @@
       if (goed === AANTAL) {
         klaar = true;
         berichtEl.textContent = "Gelukt! 🎉 De puzzel van Lio is af!";
+        const tijd = Math.round((Date.now() - startTijd) / 1000);
+        bewaarScore("puzzel", tijd, "laag");
+        toonScorebord(document.getElementById("puzzelScorebord"), "puzzel", tijdFormat);
         feest();
       } else {
         berichtEl.textContent = goed + " van de " + AANTAL + " stukjes liggen goed. 🧩";
@@ -1361,6 +1492,8 @@
         gekozen = null; herkomst = null; klaar = false;
         const goed = toon();
         berichtEl.textContent = goed + " van de " + AANTAL + " stukjes liggen goed. 🧩";
+        startTijd = Date.now();
+        toonScorebord(document.getElementById("puzzelScorebord"), "puzzel", tijdFormat);
       };
       img.src = p.f;
     }
