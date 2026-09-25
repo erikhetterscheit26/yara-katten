@@ -318,12 +318,12 @@
   button.puzzelKeuze img { width: 100%; height: 100%; object-fit: cover; display: block; }
   button.puzzelKeuze.actief { outline: 3px solid var(--lila-donker); outline-offset: 2px; }
   .puzzelBord {
-    display: grid; grid-template-columns: repeat(var(--kol, 10), 1fr); grid-template-rows: repeat(var(--rij, 5), 1fr); gap: 1px;
+    display: grid; grid-template-columns: repeat(var(--kol, 6), 1fr); grid-template-rows: repeat(var(--rij, 5), 1fr); gap: 1px;
     margin: 0 auto; width: min(100%, 560px, calc(70vh * var(--ratio, 1))); aspect-ratio: var(--ratio, 1);
     background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(124,92,196,0.2);
     touch-action: none; user-select: none; -webkit-user-select: none;
   }
-  .puzzelStuk { background-image: var(--plaat); background-size: calc(var(--kol, 10) * 100%) calc(var(--rij, 5) * 100%); cursor: pointer; }
+  .puzzelStuk { background-image: var(--plaat); background-size: calc(var(--kol, 6) * 100%) calc(var(--rij, 5) * 100%); cursor: pointer; }
   .puzzelStuk.goed { box-shadow: inset 0 0 0 2px rgba(111,207,142,0.95); }
   .puzzelStuk.gekozen { outline: 3px solid var(--lila-donker); outline-offset: -3px; filter: brightness(1.15); position: relative; z-index: 1; }
 
@@ -517,7 +517,7 @@
       <a class="spelTegel" href="#bordspel"><span class="pict">🎲</span>Kat naar de Viskom<small>Bordspel</small></a>
       <a class="spelTegel" href="#memory"><span class="pict">🃏</span>Memory met Lio<small>Zoek de paren</small></a>
       <a class="spelTegel" href="#woordzoeker"><span class="pict">🔎</span>Woordzoeker<small>Vind de kattenwoorden</small></a>
-      <a class="spelTegel" href="#puzzel"><span class="pict">🧩</span>Kattenpuzzel<small>50 stukjes</small></a>
+      <a class="spelTegel" href="#puzzel"><span class="pict">🧩</span>Kattenpuzzel<small>30 stukjes</small></a>
     </div>
   </section>
 
@@ -563,7 +563,7 @@
 
   <section id="puzzel">
     <h2>Kattenpuzzel 🧩</h2>
-    <p class="midden">De 50 stukjes van Lio liggen door elkaar. Tik op een stukje en dan op een ander stukje (of sleep het erheen) om ze te verwisselen. Een groen randje betekent dat het stukje goed ligt!</p>
+    <p class="midden">De 30 stukjes van Lio liggen door elkaar. Tik op een stukje en dan op een ander stukje (of sleep het erheen) om ze te verwisselen. Een groen randje betekent dat het stukje goed ligt!</p>
     <div class="puzzelKies">
       <img class="puzzelVoorbeeld" id="puzzelVoorbeeld" alt="Zo moet het worden">
       <div class="puzzelKnoppen" id="puzzelKnoppen"></div>
@@ -1441,10 +1441,10 @@
     nieuwSpel();
   })();
 
-  // Kattenpuzzel: 50 stukjes van een foto van Lio, verwissel ze tot de foto klopt
+  // Kattenpuzzel: 30 stukjes van een foto van Lio, verwissel ze tot de foto klopt
   (function () {
-    const AANTAL = 50;
-    let KOL = 10, RIJ = 5; // een liggende foto krijgt 10 x 5 stukjes, een staande 5 x 10
+    const AANTAL = 30;
+    let KOL = 6, RIJ = 5; // een liggende foto krijgt 6 x 5 stukjes, een staande 5 x 6
     const plaatjes = [
       { f: "Lio.jpeg", alt: "Lio slaapt" },
       { f: "Lio%20gezicht.jpeg", alt: "Lio met zijn roze neusje" },
@@ -1505,7 +1505,7 @@
         if (nr !== laadNr) return;
         // het bord krijgt dezelfde vorm als de foto, zodat er niets uitgerekt wordt
         const ratio = img.naturalWidth / img.naturalHeight;
-        KOL = ratio >= 1 ? 10 : 5; RIJ = AANTAL / KOL;
+        KOL = ratio >= 1 ? 6 : 5; RIJ = AANTAL / KOL;
         bordEl.style.setProperty("--kol", KOL);
         bordEl.style.setProperty("--rij", RIJ);
         bordEl.style.setProperty("--ratio", ratio);
