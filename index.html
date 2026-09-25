@@ -816,15 +816,18 @@
     const bord = SCOREBORDEN[spel];
     tekenScorebord(document.getElementById(bord.el), top3, bord.opmaak);
   }
+  // Scores die niet op het scorebord horen maar niet uit de database te wissen waren
+  const VERBORGEN = ["test-mag-weg"];
   // Toon bij elk spel meteen de top 3 en houd die live bij met de scores van alle spelers
   function startScoreborden() {
     Object.keys(SCOREBORDEN).forEach(spel => {
       toonScorebord(spel, laadScores()[spel] || []);
       if (!db) return;
       db.collection("spellen").doc(spel).collection("scores")
-        .orderBy("waarde", SCOREBORDEN[spel].richting === "hoog" ? "desc" : "asc").limit(3)
+        .orderBy("waarde", SCOREBORDEN[spel].richting === "hoog" ? "desc" : "asc").limit(3 + VERBORGEN.length)
         .onSnapshot(snap => {
-          const top3 = snap.docs.map(d => ({ naam: d.get("naam"), waarde: d.get("waarde") }));
+          const top3 = snap.docs.filter(d => !VERBORGEN.includes(d.id)).slice(0, 3)
+            .map(d => ({ naam: d.get("naam"), waarde: d.get("waarde") }));
           const alles = laadScores();
           alles[spel] = top3;
           bewaarLokaal(alles);
