@@ -257,6 +257,15 @@
   .pion.pc { right: 2px; }
   .spelbericht { text-align: center; min-height: 3em; margin: 16px 0 4px; font-size: 1.1rem; }
   .dobbel { font-size: 2.2rem; vertical-align: middle; margin-left: 6px; }
+  /* Echte dobbelsteen: wit met zwarte ogen, de grootte volgt de lettergrootte */
+  .steen {
+    display: inline-grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    width: 1em; height: 1em; padding: 0.13em; box-sizing: border-box; vertical-align: middle;
+    background: #fff; border-radius: 0.2em;
+    box-shadow: inset 0 -0.06em 0 rgba(0,0,0,0.12), 0 0 0 0.02em rgba(0,0,0,0.25);
+  }
+  .steen i { width: 0.19em; height: 0.19em; border-radius: 50%; place-self: center; }
+  .steen i.oog { background: #111; }
 
   /* Memory met Lio */
   .memoryBord { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; max-width: 700px; margin: 0 auto; }
@@ -1088,17 +1097,24 @@
     pionnen[0].className = "pion jij"; pionnen[0].textContent = "😺";
     pionnen[1].className = "pion pc";  pionnen[1].textContent = "🐈‍⬛";
 
-    const ZIJDEN = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+    // Waar de ogen zitten op een raster van 3 x 3 vakjes (0 = linksboven, 8 = rechtsonder)
+    const OGEN = [[4], [2, 6], [2, 4, 6], [0, 2, 6, 8], [0, 2, 4, 6, 8], [0, 2, 3, 5, 6, 8]];
+    function steen(n) {
+      let vakjes = "";
+      for (let i = 0; i < 9; i++) vakjes += OGEN[n - 1].includes(i) ? '<i class="oog"></i>' : "<i></i>";
+      return '<span class="steen" role="img" aria-label="Dobbelsteen: ' + n + '">' + vakjes + "</span>";
+    }
+    const willekeurig = () => 1 + Math.floor(Math.random() * 6);
 
     // Een dobbelsteen die van links naar rechts over het scherm rolt en dan blijft liggen
     function rolDobbel(worp) {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return wacht(300);
       return new Promise(klaarRol => {
         const d = document.createElement("div");
-        d.textContent = ZIJDEN[Math.floor(Math.random() * 6)];
+        d.innerHTML = steen(willekeurig());
         d.setAttribute("aria-hidden", "true");
-        d.style.cssText = "position:fixed;left:0;top:0;z-index:20;pointer-events:none;font-size:90px;line-height:1;" +
-          "color:#7c5cc4;filter:drop-shadow(0 8px 10px rgba(124,92,196,0.35));";
+        d.style.cssText = "position:fixed;left:0;top:0;z-index:20;pointer-events:none;font-size:80px;line-height:1;" +
+          "filter:drop-shadow(0 8px 10px rgba(0,0,0,0.3));";
         document.body.appendChild(d);
         const b = window.innerWidth, h = window.innerHeight;
         const los = (a, z) => a + Math.random() * (z - a);
@@ -1120,10 +1136,10 @@
           { transform: punt(1, 0, 1), offset: 1 }
         ], { duration: los(1100, 1600), easing: "ease-out", fill: "forwards" });
         // tijdens het rollen wisselt het getal snel, op het eind ligt hij op de echte worp
-        const wissel = setInterval(() => { d.textContent = ZIJDEN[Math.floor(Math.random() * 6)]; }, 90);
+        const wissel = setInterval(() => { d.innerHTML = steen(willekeurig()); }, 90);
         anim.onfinish = () => {
           clearInterval(wissel);
-          d.textContent = ZIJDEN[worp - 1];
+          d.innerHTML = steen(worp);
           setTimeout(() => {
             d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).onfinish = () => {
               d.remove(); klaarRol();
@@ -1178,7 +1194,7 @@
       const worp = 1 + Math.floor(Math.random() * 6);
       zeg(wie + (n ? " gooit" : " gooi") + "...");
       await rolDobbel(worp);
-      dobbelEl.textContent = ZIJDEN[worp - 1];
+      dobbelEl.innerHTML = steen(worp);
       zeg(wie + " gooit " + worp + "!");
       await wacht(600);
       await loop(n, Math.min(EIND, pos[n] + worp));
