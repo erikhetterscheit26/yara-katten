@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Iedereen mag topscores lezen en een nieuwe score toevoegen, niemand mag wijzigen of wissen.
+    match /spellen/{spel}/scores/{id} {
+      allow read: if spel in ['quiz', 'memory', 'woordzoeker', 'puzzel', 'bordspel'];
+      allow create: if spel in ['quiz', 'memory', 'woordzoeker', 'puzzel', 'bordspel']
+        && request.resource.data.keys().hasOnly(['naam', 'waarde', 'tijd'])
+        && request.resource.data.naam is string
+        && request.resource.data.naam.size() > 0
+        && request.resource.data.naam.size() <= 20
+        && request.resource.data.waarde is number
+        && request.resource.data.waarde >= 0
+        && request.resource.data.waarde < 100000
+        && request.resource.data.tijd == request.time;
+    }
+  }
+}

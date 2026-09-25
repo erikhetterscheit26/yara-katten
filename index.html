@@ -618,6 +618,8 @@
   <small>Miauw: "Meow.ogg" van Dan Crosby, via Wikimedia Commons (CC BY-SA 3.0)</small>
 </footer>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
   const weetjes = [
     "Een kat slaapt gemiddeld 12 tot 16 uur per dag! 😴",
@@ -776,10 +778,28 @@
     if (!localStorage.getItem("yaraNaam")) open(); else toonNaam();
   })();
 
-  // Topscores per spelletje, bewaard op dit apparaat
+  // Topscores per spelletje. Met Firebase gedeeld met iedereen, anders alleen op dit apparaat.
+  // Vul hier de config van je Firebase-project in (Projectinstellingen > Je apps > Web-app).
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyA9V5yJNAiifN3TdW1otxHFI9X9tvpcKhU",
+    authDomain: "yara-2fec4.firebaseapp.com",
+    projectId: "yara-2fec4",
+    storageBucket: "yara-2fec4.firebasestorage.app",
+    messagingSenderId: "178093051279",
+    appId: "1:178093051279:web:432f6e5187095a0e4bcffa"
+  };
+  const SPEL_RICHTING = { quiz: "hoog", memory: "laag", woordzoeker: "laag", puzzel: "laag", bordspel: "laag" };
+  let db = null;
+  try {
+    if (FIREBASE_CONFIG && window.firebase) db = firebase.initializeApp(FIREBASE_CONFIG).firestore();
+  } catch (e) { console.warn("Firebase niet beschikbaar, scores alleen op dit apparaat", e); }
+
   const SCORE_SLEUTEL = "yaraScores";
   function laadScores() {
     try { return JSON.parse(localStorage.getItem(SCORE_SLEUTEL)) || {}; } catch (e) { return {}; }
+  }
+  function bewaarLokaal(alles) {
+    try { localStorage.setItem(SCORE_SLEUTEL, JSON.stringify(alles)); } catch (e) {}
   }
   function bewaarScore(spel, waarde, richting) {
     const alles = laadScores();
@@ -787,11 +807,29 @@
     lijst.push({ naam: huidigeNaam(), waarde });
     lijst.sort((a, b) => richting === "hoog" ? b.waarde - a.waarde : a.waarde - b.waarde);
     alles[spel] = lijst.slice(0, 3);
-    localStorage.setItem(SCORE_SLEUTEL, JSON.stringify(alles));
+    bewaarLokaal(alles);
+    if (db) {
+      db.collection("spellen").doc(spel).collection("scores")
+        .add({ naam: huidigeNaam(), waarde, tijd: firebase.firestore.FieldValue.serverTimestamp() })
+        .catch(e => console.warn("Score niet online bewaard", e));
+    }
   }
   function toonScorebord(el, spel, opmaak) {
     if (!el) return;
-    const top3 = laadScores()[spel] || [];
+    tekenScorebord(el, laadScores()[spel] || [], opmaak);
+    if (!db) return;
+    db.collection("spellen").doc(spel).collection("scores")
+      .orderBy("waarde", SPEL_RICHTING[spel] === "hoog" ? "desc" : "asc").limit(3).get()
+      .then(snap => {
+        const top3 = snap.docs.map(d => ({ naam: d.get("naam"), waarde: d.get("waarde") }));
+        const alles = laadScores();
+        alles[spel] = top3;
+        bewaarLokaal(alles);
+        tekenScorebord(el, top3, opmaak);
+      })
+      .catch(e => console.warn("Topscores niet online geladen", e));
+  }
+  function tekenScorebord(el, top3, opmaak) {
     if (!top3.length) {
       el.innerHTML = "<h4>Topscores</h4><div style='text-align:center;color:#8a7fb0;'>Nog geen scores. Wees de eerste! 🐾</div>";
       return;
