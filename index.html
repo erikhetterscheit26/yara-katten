@@ -132,7 +132,7 @@
   }
   .weetje.wisselt { opacity: 0; }
 
-  button, .kies {
+  button {
     display: inline-block;
     border: none;
     cursor: pointer;
@@ -146,7 +146,7 @@
     box-shadow: 0 8px 20px rgba(124,92,196,0.3);
     transition: transform 0.15s, box-shadow 0.15s;
   }
-  button:hover, .kies:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(124,92,196,0.4); }
+  button:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(124,92,196,0.4); }
   button:active { transform: translateY(1px); }
   .midden { text-align: center; }
 
@@ -165,14 +165,12 @@
     transition: transform 0.2s;
   }
   figure:hover { transform: translateY(-4px) rotate(-0.5deg); }
-  figure img, .fotos > img {
+  figure img {
     width: 100%; height: 280px;
     object-fit: cover;
     display: block;
   }
-  .fotos > img { border-radius: 20px; }
   figcaption { padding: 12px 16px; font-weight: 600; color: var(--lila-donker); }
-  #fotos { margin-top: 20px; }
 
   /* Rennende kat */
   .renner {
@@ -600,17 +598,6 @@
       <button class="klein" id="bewaar">💾 Bewaar</button>
     </div>
   </section>
-
-  <section id="meerfotos">
-    <h2>Meer kattenfoto's 📸</h2>
-    <div class="midden">
-      <label class="kies">
-        Kies een foto
-        <input type="file" id="fotoKies" accept="image/*" multiple hidden>
-      </label>
-    </div>
-    <div class="fotos" id="fotos"></div>
-  </section>
 </main>
 
 <footer>
@@ -936,7 +923,7 @@
   // Menu: markeer het onderdeel waar je nu bent (alle spelletjes horen bij "Spelletjes")
   (function () {
     const groep = { weetjes: "weetjes", fotoos: "fotoos", quizvak: "quizvak", spelletjes: "spelletjes",
-      bordspel: "spelletjes", memory: "spelletjes", woordzoeker: "spelletjes", puzzel: "spelletjes", tekenen: "tekenen", meerfotos: "fotoos" };
+      bordspel: "spelletjes", memory: "spelletjes", woordzoeker: "spelletjes", puzzel: "spelletjes", tekenen: "tekenen" };
     const secties = Object.keys(groep).map(id => document.getElementById(id));
     const links = document.querySelectorAll(".menu [data-sec]");
     function markeer() {
@@ -1708,17 +1695,6 @@
     link.download = "mijn-kat.png";
     link.href = bord.toDataURL("image/png");
     link.click();
-  });
-
-  // Foto's kiezen en laten zien
-  document.getElementById("fotoKies").addEventListener("change", (e) => {
-    const vak = document.getElementById("fotos");
-    for (const bestand of e.target.files) {
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(bestand);
-      img.alt = "Een kat";
-      vak.appendChild(img);
-    }
   });
 </script>
 </body>
