@@ -11,8 +11,7 @@ service cloud.firestore {
         && request.resource.data.naam.size() <= 20
         && request.resource.data.waarde is number
         && request.resource.data.waarde >= 0
-        && request.resource.data.waarde < 100000
-        && request.resource.data.tijd == request.time;
+        && request.resource.data.waarde < 100000;
     }
   }
 }

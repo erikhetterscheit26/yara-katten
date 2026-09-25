@@ -506,6 +506,7 @@
   <section id="quizvak">
     <h2>Kattenquiz ❓</h2>
     <div id="quiz"></div>
+    <div class="scorebord" id="quizScorebord"></div>
   </section>
 
   <section id="spelletjes">
@@ -775,7 +776,14 @@
     messagingSenderId: "178093051279",
     appId: "1:178093051279:web:432f6e5187095a0e4bcffa"
   };
-  const SPEL_RICHTING = { quiz: "hoog", memory: "laag", woordzoeker: "laag", puzzel: "laag", bordspel: "laag" };
+  // Per spel: welk scorebord, of hoog of laag beter is, en hoe een score eruitziet
+  const SCOREBORDEN = {
+    quiz: { el: "quizScorebord", richting: "hoog", opmaak: w => w + " / " + vragen.length + " goed" },
+    bordspel: { el: "bordScorebord", richting: "laag", opmaak: w => w + " beurten" },
+    memory: { el: "memoryScorebord", richting: "laag", opmaak: w => w + " beurten" },
+    woordzoeker: { el: "zoekScorebord", richting: "laag", opmaak: w => tijdFormat(w) },
+    puzzel: { el: "puzzelScorebord", richting: "laag", opmaak: w => tijdFormat(w) }
+  };
   let db = null;
   try {
     if (FIREBASE_CONFIG && window.firebase) db = firebase.initializeApp(FIREBASE_CONFIG).firestore();
@@ -788,33 +796,41 @@
   function bewaarLokaal(alles) {
     try { localStorage.setItem(SCORE_SLEUTEL, JSON.stringify(alles)); } catch (e) {}
   }
-  function bewaarScore(spel, waarde, richting) {
+  function bewaarScore(spel, waarde) {
     const alles = laadScores();
     const lijst = alles[spel] || [];
     lijst.push({ naam: huidigeNaam(), waarde });
-    lijst.sort((a, b) => richting === "hoog" ? b.waarde - a.waarde : a.waarde - b.waarde);
+    lijst.sort((a, b) => SCOREBORDEN[spel].richting === "hoog" ? b.waarde - a.waarde : a.waarde - b.waarde);
     alles[spel] = lijst.slice(0, 3);
     bewaarLokaal(alles);
     if (db) {
+      // het live scorebord werkt zichzelf bij zodra de score online staat
       db.collection("spellen").doc(spel).collection("scores")
         .add({ naam: huidigeNaam(), waarde, tijd: firebase.firestore.FieldValue.serverTimestamp() })
         .catch(e => console.warn("Score niet online bewaard", e));
+    } else {
+      toonScorebord(spel, alles[spel]);
     }
   }
-  function toonScorebord(el, spel, opmaak) {
-    if (!el) return;
-    tekenScorebord(el, laadScores()[spel] || [], opmaak);
-    if (!db) return;
-    db.collection("spellen").doc(spel).collection("scores")
-      .orderBy("waarde", SPEL_RICHTING[spel] === "hoog" ? "desc" : "asc").limit(3).get()
-      .then(snap => {
-        const top3 = snap.docs.map(d => ({ naam: d.get("naam"), waarde: d.get("waarde") }));
-        const alles = laadScores();
-        alles[spel] = top3;
-        bewaarLokaal(alles);
-        tekenScorebord(el, top3, opmaak);
-      })
-      .catch(e => console.warn("Topscores niet online geladen", e));
+  function toonScorebord(spel, top3) {
+    const bord = SCOREBORDEN[spel];
+    tekenScorebord(document.getElementById(bord.el), top3, bord.opmaak);
+  }
+  // Toon bij elk spel meteen de top 3 en houd die live bij met de scores van alle spelers
+  function startScoreborden() {
+    Object.keys(SCOREBORDEN).forEach(spel => {
+      toonScorebord(spel, laadScores()[spel] || []);
+      if (!db) return;
+      db.collection("spellen").doc(spel).collection("scores")
+        .orderBy("waarde", SCOREBORDEN[spel].richting === "hoog" ? "desc" : "asc").limit(3)
+        .onSnapshot(snap => {
+          const top3 = snap.docs.map(d => ({ naam: d.get("naam"), waarde: d.get("waarde") }));
+          const alles = laadScores();
+          alles[spel] = top3;
+          bewaarLokaal(alles);
+          toonScorebord(spel, top3);
+        }, e => console.warn("Topscores niet online geladen", e));
+    });
   }
   function tekenScorebord(el, top3, opmaak) {
     if (!top3.length) {
@@ -900,12 +916,10 @@
     if (punten === vragen.length) boodschap = "Perfect! Jij bent een echte kattenexpert! 🏆";
     else if (punten >= 4) boodschap = "Super gedaan! Bijna alles goed! 🌟";
     if (punten > 10) feest();
-    bewaarScore("quiz", punten, "hoog");
+    bewaarScore("quiz", punten);
     quizVak.innerHTML =
       '<div class="score">' + punten + ' van ' + vragen.length + ' goed</div>' +
-      '<div class="vraag">' + boodschap + '</div>' +
-      '<div class="scorebord" id="quizScorebord"></div>';
-    toonScorebord(document.getElementById("quizScorebord"), "quiz", w => w + " / " + vragen.length + " goed");
+      '<div class="vraag">' + boodschap + '</div>';
     const opnieuw = document.createElement("button");
     opnieuw.textContent = "Nog een keer";
     opnieuw.addEventListener("click", () => { nr = 0; punten = 0; toonVraag(); });
@@ -1127,7 +1141,6 @@
       gooiKnop.disabled = false;
       teken();
       zeg("Gooi de dobbelsteen om te beginnen!");
-      toonScorebord(document.getElementById("bordScorebord"), "bordspel", w => w + " beurten");
     }
 
     // Loop rustig vakje voor vakje naar het doel, met een klein huppeltje per stap
@@ -1180,8 +1193,7 @@
       if (pos[n] >= EIND) {
         klaar = true;
         if (n === 0) {
-          bewaarScore("bordspel", spelerBeurten, "laag");
-          toonScorebord(document.getElementById("bordScorebord"), "bordspel", w => w + " beurten");
+          bewaarScore("bordspel", spelerBeurten);
         }
         zeg(n ? "Lio is het eerst bij de viskom! 🐈‍⬛ Nog een keer?" : "Hoera, jij wint! 🎉 Je bent het eerst bij de viskom! 🥣");
       }
@@ -1239,7 +1251,6 @@
       open = []; gevonden = 0; zetten = 0; geblokkeerd = false;
       memoryBord.innerHTML = "";
       memoryBericht.textContent = "Kies een kaartje!";
-      toonScorebord(document.getElementById("memoryScorebord"), "memory", w => w + " beurten");
       schud(kaartjes.concat(kaartjes)).forEach(k => {
         const knop = document.createElement("button");
         knop.className = "kaartje";
@@ -1269,8 +1280,7 @@
         miauw();
         if (gevonden === kaartjes.length) {
           memoryBericht.textContent = "Gefeliciteerd! 🎉 Alle paren gevonden in " + zetten + " beurten!";
-          bewaarScore("memory", zetten, "laag");
-          toonScorebord(document.getElementById("memoryScorebord"), "memory", w => w + " beurten");
+          bewaarScore("memory", zetten);
           feest();
         } else {
           memoryBericht.textContent = "Een paar! 😺";
@@ -1358,7 +1368,6 @@
       });
       berichtEl.textContent = "Veel succes! 🐾";
       startTijd = Date.now();
-      toonScorebord(document.getElementById("zoekScorebord"), "woordzoeker", tijdFormat);
     }
 
     const cel = (r, k) => cellen[r * MAAT + k];
@@ -1414,8 +1423,7 @@
           : "Goed zo, je vond " + w + "! 😺";
         if (gevonden.size === lijstEl.children.length) {
           const tijd = Math.round((Date.now() - startTijd) / 1000);
-          bewaarScore("woordzoeker", tijd, "laag");
-          toonScorebord(document.getElementById("zoekScorebord"), "woordzoeker", tijdFormat);
+          bewaarScore("woordzoeker", tijd);
           feest();
         }
       }
@@ -1473,8 +1481,7 @@
         klaar = true;
         berichtEl.textContent = "Gelukt! 🎉 De puzzel van Lio is af!";
         const tijd = Math.round((Date.now() - startTijd) / 1000);
-        bewaarScore("puzzel", tijd, "laag");
-        toonScorebord(document.getElementById("puzzelScorebord"), "puzzel", tijdFormat);
+        bewaarScore("puzzel", tijd);
         feest();
       } else {
         berichtEl.textContent = goed + " van de " + AANTAL + " stukjes liggen goed. 🧩";
@@ -1518,7 +1525,6 @@
         const goed = toon();
         berichtEl.textContent = goed + " van de " + AANTAL + " stukjes liggen goed. 🧩";
         startTijd = Date.now();
-        toonScorebord(document.getElementById("puzzelScorebord"), "puzzel", tijdFormat);
       };
       img.src = p.f;
     }
@@ -1696,6 +1702,8 @@
     link.href = bord.toDataURL("image/png");
     link.click();
   });
+
+  startScoreborden();
 </script>
 </body>
 </html>
